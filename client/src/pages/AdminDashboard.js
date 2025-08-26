@@ -19,6 +19,8 @@ const AdminDashboard = () => {
 const [pendingNotifications, setPendingNotifications] = useState(0);
 const [customMessage, setCustomMessage] = useState('');
 
+const config = { API_URL: process.env.REACT_APP_API_URL };
+
     // Form builder state
     const [newForm, setNewForm] = useState({
         title: '',
