@@ -30,6 +30,16 @@ app.use(session({
     }
 }));
 
+// Add this to your CORS configuration in server.js
+const corsOptions = {
+    origin: process.env.NODE_ENV === 'production' 
+        ? process.env.CLIENT_URL 
+        : 'http://localhost:3000',
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
 // Passport initialization - ADD THIS LINE
 require('./config/passport'); // This imports and configures the strategies
 
