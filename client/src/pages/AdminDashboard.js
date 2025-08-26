@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import React, { useState, useEffect, useCallback } from 'react';
 
 const API_URL = process.env.REACT_APP_API_URL;
