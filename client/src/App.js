@@ -19,32 +19,44 @@ function App() {
     const logoTextWhite = `${process.env.PUBLIC_URL}/logos/text-white.png`;
 
     useEffect(() => {
-        checkAuthStatus();
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        if (urlParams.get('roblox_linked') === 'true') {
-            const username = urlParams.get('username');
-            setMessage(username ? `Successfully connected Roblox account: ${username}` : 'Roblox account connected successfully!');
-            
-            setTimeout(() => {
-                checkAuthStatus();
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }, 1000);
-            
-            setTimeout(() => setMessage(''), 5000);
-        }
-        
-        if (urlParams.get('error')) {
-            if (urlParams.get('error') === 'not_admin') {
-                setMessage('Access denied: You are not an administrator');
-            } else {
-                setMessage(`Error: ${urlParams.get('error')}`);
-            }
-            setTimeout(() => setMessage(''), 5000);
+    checkAuthStatus();
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // ADD THIS BLOCK AFTER checkAuthStatus() and before roblox_linked check:
+    if (urlParams.get('auth') === 'success') {
+        setMessage('Successfully logged in with Discord!');
+        setTimeout(() => {
+            checkAuthStatus(); // Re-check auth status
             window.history.replaceState({}, document.title, window.location.pathname);
+        }, 1000);
+        setTimeout(() => setMessage(''), 5000);
+    }
+    
+    // Your existing roblox_linked code stays the same...
+    if (urlParams.get('roblox_linked') === 'true') {
+        const username = urlParams.get('username');
+        setMessage(username ? `Successfully connected Roblox account: ${username}` : 'Roblox account connected successfully!');
+        
+        setTimeout(() => {
+            checkAuthStatus();
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }, 1000);
+        
+        setTimeout(() => setMessage(''), 5000);
+    }
+    
+    // Your existing error handling code stays the same...
+    if (urlParams.get('error')) {
+        if (urlParams.get('error') === 'not_admin') {
+            setMessage('Access denied: You are not an administrator');
+        } else {
+            setMessage(`Error: ${urlParams.get('error')}`);
         }
-    }, []);
+        setTimeout(() => setMessage(''), 5000);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}, []);
 
     const checkAuthStatus = async (retries = 3) => {
         try {

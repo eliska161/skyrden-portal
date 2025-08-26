@@ -37,7 +37,9 @@ router.get('/discord/callback',
             }
         } else {
             console.log('Regular login, redirecting to home');
-            res.redirect(process.env.CLIENT_URL);
+            // CHANGE THIS LINE:
+            res.redirect(`${process.env.CLIENT_URL}/?auth=success`);
+            // FROM: res.redirect(process.env.CLIENT_URL);
         }
     }
 );
