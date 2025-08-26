@@ -18,6 +18,11 @@ function App() {
     const logoTextBlue = `${process.env.PUBLIC_URL}/logos/text-blue.png`;
     const logoTextWhite = `${process.env.PUBLIC_URL}/logos/text-white.png`;
 
+    // Add this useEffect to debug user state changes
+useEffect(() => {
+    console.log('User state changed:', user);
+}, [user]);
+
    useEffect(() => {
     checkAuthStatus();
     
@@ -59,68 +64,57 @@ function App() {
 }, []);
 
     const checkAuthStatus = async (retries = 3) => {
-        try {
-            const response = await fetch(`${config.API_URL}/api/auth/status`, {
-                credentials: 'include'
-            });
-            
-            if (!response.ok && retries > 0) {
-                // Retry after a short delay
-                setTimeout(() => checkAuthStatus(retries - 1), 500);
+    try {
+        console.log('Checking auth status... (retries left:', retries, ')');
+        
+        const response = await fetch(`${config.API_URL}/api/auth/status`, {
+            credentials: 'include'
+        });
+        
+        console.log('Auth response status:', response.status, response.ok);
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                // User is not authenticated - this is normal, not an error
+                console.log('User not authenticated');
+                setUser(null);
+                setLoading(false);
                 return;
             }
             
-            const data = await response.json();
-            if (data.authenticated) {
-                setUser(data.user);
-            }
-        } catch (error) {
-            console.error('Auth check failed:', error);
             if (retries > 0) {
-                setTimeout(() => checkAuthStatus(retries - 1), 500);
+                console.log('Auth check failed, retrying...');
+                setTimeout(() => checkAuthStatus(retries - 1), 1000);
+                return;
             }
-        } finally {
+        }
+        
+        const data = await response.json();
+        console.log('Auth data received:', data);
+        
+        if (data.authenticated && data.user) {
+            console.log('Setting user:', data.user);
+            setUser(data.user);
+        } else {
+            console.log('No authenticated user found');
+            setUser(null);
+        }
+        
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        if (retries > 0) {
+            setTimeout(() => checkAuthStatus(retries - 1), 1000);
+            return;
+        } else {
+            setUser(null);
+        }
+    } finally {
+        // Only set loading to false if we're not going to retry
+        if (retries <= 1) {
             setLoading(false);
         }
-    };
-
-    const startDiscordLogin = () => {
-        window.location.href = `${config.API_URL}/api/auth/discord`;
-    };
-
-    const startAdminLogin = () => {
-        window.location.href = `${config.API_URL}/api/auth/admin`;
-    };
-
-    const startRobloxLogin = () => {
-        window.location.href = `${config.API_URL}/api/auth/roblox`;
-    };
-
-    const handleLogout = async () => {
-        try {
-            const response = await fetch(`${config.API_URL}/api/auth/logout`, {
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                setUser(null);
-                setMessage('Logged out successfully');
-                setTimeout(() => setMessage(''), 3000);
-            } else {
-                setMessage('Logout failed: ' + (data.error || 'Unknown error'));
-                setTimeout(() => setMessage(''), 3000);
-            }
-        } catch (error) {
-            console.error('Logout error:', error);
-            setMessage('Logout failed - connection error');
-            setTimeout(() => setMessage(''), 3000);
-        }
-    };
+    }
+};
 
     // Function to remove Discord discriminator (everything after #)
     const formatDiscordUsername = (username) => {
