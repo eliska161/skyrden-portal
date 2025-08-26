@@ -79,7 +79,6 @@ async function sendApplicationNotification(application, customMessage = null) {
             const embed = {
                 color: statusColor,
                 title: `${statusEmoji} Update - ${application.form_title}`,
-                description: message,
                 fields: [
                     {
                         name: 'Status',
@@ -92,6 +91,7 @@ async function sendApplicationNotification(application, customMessage = null) {
                         inline: true
                     }
                 ],
+                description: message,
                 timestamp: new Date(),
                 footer: {
                     text: 'Skyrden Recruitment'
