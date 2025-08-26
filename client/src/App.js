@@ -48,7 +48,7 @@ function App() {
 
     const checkAuthStatus = async (retries = 3) => {
         try {
-            const response = await fetch(`${config.API_URL}/auth/status`, {
+            const response = await fetch(`${config.API_URL}/api/auth/status`, {
                 credentials: 'include'
             });
             
