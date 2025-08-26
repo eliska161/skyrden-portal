@@ -7,7 +7,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ApplicationPortal from './pages/ApplicationPortal';
 import MyApplications from './pages/MyApplications';
 
-const API_URL = process.env.REACT_APP_API_URL;
+import config from '../config';
 
 function App() {
     const [user, setUser] = useState(null);
@@ -49,7 +49,7 @@ function App() {
 
     const checkAuthStatus = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/auth/status`, {
+            const response = await fetch(`${config.API_URL}/api/auth/status`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -67,20 +67,20 @@ function App() {
     };
 
     const startDiscordLogin = () => {
-        window.location.href = `${API_URL}/api/auth/discord`;
+        window.location.href = `${config.API_URL}/api/auth/discord`;
     };
 
     const startAdminLogin = () => {
-        window.location.href = `${API_URL}/api/auth/admin`;
+        window.location.href = `${config.API_URL}/api/auth/admin`;
     };
 
     const startRobloxLogin = () => {
-        window.location.href = `${API_URL}/api/auth/roblox`;
+        window.location.href = `${config.API_URL}/api/auth/roblox`;
     };
 
     const handleLogout = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/auth/logout`, {
+            const response = await fetch(`${config.API_URL}/api/auth/logout`, {
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json'
