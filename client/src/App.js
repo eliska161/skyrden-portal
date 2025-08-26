@@ -46,20 +46,27 @@ function App() {
         }
     }, []);
 
-    const checkAuthStatus = async () => {
+    const checkAuth = async (retries = 3) => {
         try {
-            const response = await fetch(`${config.API_URL}/api/auth/status`, {
+            const response = await fetch(`${config.API_URL}/auth/status`, {
                 credentials: 'include'
             });
+            
+            if (!response.ok && retries > 0) {
+                // Retry after a short delay
+                setTimeout(() => checkAuth(retries - 1), 500);
+                return;
+            }
+            
             const data = await response.json();
             if (data.authenticated) {
                 setUser(data.user);
-            } else {
-                setUser(null);
             }
         } catch (error) {
             console.error('Auth check failed:', error);
-            setUser(null);
+            if (retries > 0) {
+                setTimeout(() => checkAuth(retries - 1), 500);
+            }
         } finally {
             setLoading(false);
         }
