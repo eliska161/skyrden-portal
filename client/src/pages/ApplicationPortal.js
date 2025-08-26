@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const ApplicationPortal = () => {
     const [user, setUser] = useState(null);
     const [applicationForms, setApplicationForms] = useState([]);
@@ -16,7 +18,7 @@ const ApplicationPortal = () => {
 
     const checkAuthStatus = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/auth/status', {
+            const response = await fetch(`${config.API_URL}/api/auth/status`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -37,7 +39,7 @@ const ApplicationPortal = () => {
 
     const fetchApplicationForms = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/applications/forms', {
+            const response = await fetch(`${config.API_URL}/api/applications/forms`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -49,7 +51,7 @@ const ApplicationPortal = () => {
 
     const fetchMyApplications = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/applications/my-applications', {
+            const response = await fetch(`${config.API_URL}/api/applications/my-applications`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -78,7 +80,7 @@ const ApplicationPortal = () => {
 
         setSubmitting(true);
         try {
-            const response = await fetch('http://localhost:5001/api/applications/submit', {
+            const response = await fetch(`${config.API_URL}/api/applications/submit`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

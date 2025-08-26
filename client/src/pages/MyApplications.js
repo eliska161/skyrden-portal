@@ -12,7 +12,7 @@ const MyApplications = () => {
 
     const checkAuthStatus = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/auth/status', {
+            const response = await fetch(`${config.API_URL}/api/auth/status`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -33,7 +33,7 @@ const MyApplications = () => {
 
     const fetchMyApplications = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/applications/my-applications', {
+            const response = await fetch(`${config.API_URL}/api/applications/my-applications`, {
                 credentials: 'include'
             });
             const data = await response.json();

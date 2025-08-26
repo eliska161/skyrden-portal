@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+
+const API_URL = process.env.REACT_APP_API_URL;
 
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);
@@ -39,10 +42,10 @@ const [customMessage, setCustomMessage] = useState('');
     }, []);
 
     useEffect(() => {
-        if (user && user.is_admin) {
-            loadData();
-        }
-    }, [user, activeTab]);
+    if (user && user.is_admin) {
+        loadData();
+    }
+}, [user, activeTab, loadData]);
 
     useEffect(() => {
     // Load notification config and pending count
@@ -54,7 +57,7 @@ const [customMessage, setCustomMessage] = useState('');
 
     const checkAdminStatus = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/auth/status', {
+            const response = await fetch(`${API_URL}/api/auth/status`, {
                 credentials: 'include'
             });
             const data = await response.json();
@@ -76,31 +79,31 @@ const [customMessage, setCustomMessage] = useState('');
         }
     };
 
-    const loadData = async () => {
-        try {
-            if (activeTab === 'applications') {
-                const response = await fetch('http://localhost:5001/api/admin/applications', {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                setApplications(data);
-            } else if (activeTab === 'forms') {
-                const response = await fetch('http://localhost:5001/api/admin/forms', {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                setApplicationForms(data);
-            } else if (activeTab === 'whitelist') {
-                const response = await fetch('http://localhost:5001/api/admin/whitelist', {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-                setWhitelist(data);
-            }
-        } catch (error) {
-            console.error('Failed to fetch data:', error);
+    const loadData = useCallback(async () => {
+    try {
+        if (activeTab === 'applications') {
+            const response = await fetch('http://localhost:5001/api/admin/applications', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setApplications(data);
+        } else if (activeTab === 'forms') {
+            const response = await fetch('http://localhost:5001/api/admin/forms', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setApplicationForms(data);
+        } else if (activeTab === 'whitelist') {
+            const response = await fetch('http://localhost:5001/api/admin/whitelist', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setWhitelist(data);
         }
-    };
+    } catch (error) {
+        console.error('Failed to fetch data:', error);
+    }
+}, [activeTab]);
 
 
     const addOptionToField = () => {
@@ -155,7 +158,7 @@ const [customMessage, setCustomMessage] = useState('');
         }
 
         try {
-            const response = await fetch('http://localhost:5001/api/admin/forms', {
+            const response = await fetch(`${config.API_URL}/api/admin/forms`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -185,7 +188,7 @@ const [customMessage, setCustomMessage] = useState('');
         if (!newDiscordId) return;
 
         try {
-            const response = await fetch('http://localhost:5001/api/admin/whitelist', {
+            const response = await fetch(`${config.API_URL}/api/admin/whitelist`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -206,7 +209,7 @@ const [customMessage, setCustomMessage] = useState('');
 
     const removeFromWhitelist = async (discordId) => {
         try {
-            const response = await fetch(`http://localhost:5001/api/admin/whitelist/${discordId}`, {
+            const response = await fetch(`${config.API_URL}/api/admin/whitelist/${discordId}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });
@@ -221,92 +224,92 @@ const [customMessage, setCustomMessage] = useState('');
     };
 
     const fetchNotificationConfig = async () => {
-    try {
-        const response = await fetch('http://localhost:5001/api/admin/notifications/config', {
-            credentials: 'include'
-        });
-        const data = await response.json();
-        setNotificationConfig(data);
-    } catch (error) {
-        console.error('Failed to fetch notification config:', error);
-    }
-};
-
-const fetchPendingNotifications = async () => {
-    try {
-        const response = await fetch('http://localhost:5001/api/admin/notifications/pending', {
-            credentials: 'include'
-        });
-        const data = await response.json();
-        setPendingNotifications(data.pendingCount);
-    } catch (error) {
-        console.error('Failed to fetch pending notifications:', error);
-    }
-};
-
-const handleReview = async (applicationId, status, sendNow = false) => {
-    try {
-        const response = await fetch('http://localhost:5001/api/admin/review', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                applicationId,
-                status,
-                feedback: feedback || 'No feedback provided',
-                sendNotification: sendNow,
-                customMessage: sendNow ? customMessage : null
-            })
-        });
-
-        if (response.ok) {
-            setFeedback('');
-            setCustomMessage('');
-            setSelectedApp(null);
-            loadData();
-            fetchPendingNotifications();
-            alert(`Application reviewed ${sendNow ? 'and notification sent' : ''} successfully!`);
+        try {
+            const response = await fetch(`${config.API_URL}/api/admin/notifications/config`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setNotificationConfig(data);
+        } catch (error) {
+            console.error('Failed to fetch notification config:', error);
         }
-    } catch (error) {
-        console.error('Review failed:', error);
-    }
-};
+    };
 
-const sendAllNotifications = async () => {
-    try {
-        const response = await fetch('http://localhost:5001/api/admin/notifications/send-all', {
-            method: 'POST',
-            credentials: 'include'
-        });
-        const data = await response.json();
-        alert(data.message);
-        fetchPendingNotifications();
-    } catch (error) {
-        console.error('Failed to send all notifications:', error);
-    }
-};
+    const fetchPendingNotifications = async () => {
+        try {
+            const response = await fetch(`${config.API_URL}/api/admin/notifications/pending`, {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            setPendingNotifications(data.pendingCount);
+        } catch (error) {
+            console.error('Failed to fetch pending notifications:', error);
+        }
+    };
 
-const updateNotificationConfig = async () => {
-    try {
-        const response = await fetch('http://localhost:5001/api/admin/notifications/config', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify(notificationConfig)
-        });
-        alert('Notification configuration updated!');
-    } catch (error) {
-        console.error('Failed to update config:', error);
-    }
-};
+    const handleReview = async (applicationId, status, sendNow = false) => {
+        try {
+            const response = await fetch(`${config.API_URL}/api/admin/review`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    applicationId,
+                    status,
+                    feedback: feedback || 'No feedback provided',
+                    sendNotification: sendNow,
+                    customMessage: sendNow ? customMessage : null
+                })
+            });
+
+            if (response.ok) {
+                setFeedback('');
+                setCustomMessage('');
+                setSelectedApp(null);
+                loadData();
+                fetchPendingNotifications();
+                alert(`Application reviewed ${sendNow ? 'and notification sent' : ''} successfully!`);
+            }
+        } catch (error) {
+            console.error('Review failed:', error);
+        }
+    };
+
+    const sendAllNotifications = async () => {
+        try {
+            const response = await fetch(`${config.API_URL}/api/admin/notifications/send-all`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            const data = await response.json();
+            alert(data.message);
+            fetchPendingNotifications();
+        } catch (error) {
+            console.error('Failed to send all notifications:', error);
+        }
+    };
+
+    const updateNotificationConfig = async () => {
+        try {
+            const response = await fetch(`${config.API_URL}/api/admin/notifications/config`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(notificationConfig)
+            });
+            alert('Notification configuration updated!');
+        } catch (error) {
+            console.error('Failed to update config:', error);
+        }
+    };
 
     const updateFormStatus = async (formId, isActive) => {
         try {
-            const response = await fetch(`http://localhost:5001/api/admin/forms/${formId}`, {
+            const response = await fetch(`${config.API_URL}/api/admin/forms/${formId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -314,6 +317,8 @@ const updateNotificationConfig = async () => {
                 credentials: 'include',
                 body: JSON.stringify({ is_active: isActive })
             });
+
+            
 
             if (response.ok) {
                 loadData();
