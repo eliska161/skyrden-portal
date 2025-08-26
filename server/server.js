@@ -9,28 +9,7 @@ const db = require('./database/db');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Middleware
-app.use(cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true
-}));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '../client/build')));
-
-// Session configuration
-app.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: false,
-        maxAge: 24 * 60 * 60 * 1000
-    }
-}));
-
-// Add this to your CORS configuration in server.js
+// CORS configuration - SINGLE CONFIGURATION
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? process.env.CLIENT_URL 
@@ -40,6 +19,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Session configuration - SINGLE CONFIGURATION
 app.use(session({
     secret: process.env.SESSION_SECRET || 'fallback-secret',
     resave: false,
@@ -52,9 +36,8 @@ app.use(session({
     }
 }));
 
-// Passport initialization - ADD THIS LINE
+// Passport initialization
 require('./config/passport'); // This imports and configures the strategies
-
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -79,12 +62,12 @@ if (process.env.NODE_ENV === 'production') {
     app.get('*', (req, res) => {
         res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
     });
+} else {
+    // Handle React routing in development
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    });
 }
-
-// Handle React routing, return all requests to React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-});
 
 app.listen(PORT, () => {
     console.log(`Skyrden Application Portal server running on port ${PORT}`);
