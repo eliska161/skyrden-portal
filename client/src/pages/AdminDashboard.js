@@ -10,6 +10,12 @@ const AdminDashboard = () => {
     const [selectedApp, setSelectedApp] = useState(null);
     const [feedback, setFeedback] = useState('');
     const [newDiscordId, setNewDiscordId] = useState('');
+    const [notificationConfig, setNotificationConfig] = useState({
+    defaultMessage: 'Your application has been reviewed!',
+    botToken: ''
+});
+const [pendingNotifications, setPendingNotifications] = useState(0);
+const [customMessage, setCustomMessage] = useState('');
 
     // Form builder state
     const [newForm, setNewForm] = useState({
@@ -37,6 +43,14 @@ const AdminDashboard = () => {
             loadData();
         }
     }, [user, activeTab]);
+
+    useEffect(() => {
+    // Load notification config and pending count
+    if (user && user.is_admin) {
+        fetchNotificationConfig();
+        fetchPendingNotifications();
+    }
+}, [user, activeTab]);
 
     const checkAdminStatus = async () => {
         try {
@@ -88,31 +102,6 @@ const AdminDashboard = () => {
         }
     };
 
-    const handleReview = async (applicationId, status) => {
-        try {
-            const response = await fetch('http://localhost:5001/api/admin/review', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    applicationId,
-                    status,
-                    feedback: feedback || 'No feedback provided'
-                })
-            });
-
-            if (response.ok) {
-                setFeedback('');
-                setSelectedApp(null);
-                loadData();
-                alert('Application reviewed successfully!');
-            }
-        } catch (error) {
-            console.error('Review failed:', error);
-        }
-    };
 
     const addOptionToField = () => {
         if (!currentOption) return;
@@ -231,6 +220,90 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchNotificationConfig = async () => {
+    try {
+        const response = await fetch('http://localhost:5001/api/admin/notifications/config', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        setNotificationConfig(data);
+    } catch (error) {
+        console.error('Failed to fetch notification config:', error);
+    }
+};
+
+const fetchPendingNotifications = async () => {
+    try {
+        const response = await fetch('http://localhost:5001/api/admin/notifications/pending', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        setPendingNotifications(data.pendingCount);
+    } catch (error) {
+        console.error('Failed to fetch pending notifications:', error);
+    }
+};
+
+const handleReview = async (applicationId, status, sendNow = false) => {
+    try {
+        const response = await fetch('http://localhost:5001/api/admin/review', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                applicationId,
+                status,
+                feedback: feedback || 'No feedback provided',
+                sendNotification: sendNow,
+                customMessage: sendNow ? customMessage : null
+            })
+        });
+
+        if (response.ok) {
+            setFeedback('');
+            setCustomMessage('');
+            setSelectedApp(null);
+            loadData();
+            fetchPendingNotifications();
+            alert(`Application reviewed ${sendNow ? 'and notification sent' : ''} successfully!`);
+        }
+    } catch (error) {
+        console.error('Review failed:', error);
+    }
+};
+
+const sendAllNotifications = async () => {
+    try {
+        const response = await fetch('http://localhost:5001/api/admin/notifications/send-all', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        const data = await response.json();
+        alert(data.message);
+        fetchPendingNotifications();
+    } catch (error) {
+        console.error('Failed to send all notifications:', error);
+    }
+};
+
+const updateNotificationConfig = async () => {
+    try {
+        const response = await fetch('http://localhost:5001/api/admin/notifications/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(notificationConfig)
+        });
+        alert('Notification configuration updated!');
+    } catch (error) {
+        console.error('Failed to update config:', error);
+    }
+};
+
     const updateFormStatus = async (formId, isActive) => {
         try {
             const response = await fetch(`http://localhost:5001/api/admin/forms/${formId}`, {
@@ -274,54 +347,86 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* Navigation Tabs */}
-                <div style={{ 
-                    display: 'flex', 
-                    gap: '10px', 
-                    marginBottom: '20px',
-                    background: 'white',
-                    padding: '10px',
-                    borderRadius: '8px'
-                }}>
-                    <button 
-                        onClick={() => setActiveTab('applications')}
-                        style={{ 
-                            padding: '10px 20px',
-                            background: activeTab === 'applications' ? '#002244' : '#f1f5f9',
-                            color: activeTab === 'applications' ? 'white' : '#002244',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Applications
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('forms')}
-                        style={{ 
-                            padding: '10px 20px',
-                            background: activeTab === 'forms' ? '#002244' : '#f1f5f9',
-                            color: activeTab === 'forms' ? 'white' : '#002244',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Form Builder
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('whitelist')}
-                        style={{ 
-                            padding: '10px 20px',
-                            background: activeTab === 'whitelist' ? '#002244' : '#f1f5f9',
-                            color: activeTab === 'whitelist' ? 'white' : '#002244',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Admin Whitelist
-                    </button>
-                </div>
+<div style={{ 
+    display: 'flex', 
+    gap: '10px', 
+    marginBottom: '20px',
+    background: 'white',
+    padding: '10px',
+    borderRadius: '8px'
+}}>
+    <button 
+        onClick={() => setActiveTab('applications')}
+        style={{ 
+            padding: '10px 20px',
+            background: activeTab === 'applications' ? '#002244' : '#f1f5f9',
+            color: activeTab === 'applications' ? 'white' : '#002244',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+        }}
+    >
+        Applications
+    </button>
+    <button 
+        onClick={() => setActiveTab('forms')}
+        style={{ 
+            padding: '10px 20px',
+            background: activeTab === 'forms' ? '#002244' : '#f1f5f9',
+            color: activeTab === 'forms' ? 'white' : '#002244',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+        }}
+    >
+        Form Builder
+    </button>
+    <button 
+        onClick={() => setActiveTab('whitelist')}
+        style={{ 
+            padding: '10px 20px',
+            background: activeTab === 'whitelist' ? '#002244' : '#f1f5f9',
+            color: activeTab === 'whitelist' ? 'white' : '#002244',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+        }}
+    >
+        Admin Whitelist
+    </button>
+    <button 
+        onClick={() => setActiveTab('notifications')}
+        style={{ 
+            padding: '10px 20px',
+            background: activeTab === 'notifications' ? '#002244' : '#f1f5f9',
+            color: activeTab === 'notifications' ? 'white' : '#002244',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            position: 'relative'
+        }}
+    >
+        Notifications
+        {pendingNotifications > 0 && (
+            <span style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                background: '#dc2626',
+                color: 'white',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                {pendingNotifications}
+            </span>
+        )}
+    </button>
+</div>
 
                 {/* Applications Tab */}
                 {activeTab === 'applications' && (
@@ -337,42 +442,49 @@ const AdminDashboard = () => {
                         
                         <div style={{ display: 'grid', gap: '15px' }}>
                             {applications.map(app => (
-                                <div key={app.id} style={{ 
-                                    padding: '15px', 
-                                    border: '1px solid #e2e8f0', 
-                                    borderRadius: '8px',
-                                    background: selectedApp?.id === app.id ? '#f0f9ff' : 'white'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                        <div>
-                                            <h3 style={{ margin: '0 0 10px 0', color: '#002244' }}>
-                                                {app.discord_username} - {app.form_title}
-                                            </h3>
-                                            <p style={{ margin: '0 0 10px 0', color: '#64748b' }}>
-                                                Submitted: {new Date(app.created_at).toLocaleDateString()}
-                                                {app.roblox_username && ` • Roblox: ${app.roblox_username}`}
-                                            </p>
-                                            <div style={{ color: '#64748b', fontSize: '14px' }}>
-                                                Status: <span style={{ 
-                                                    color: app.status === 'approved' ? '#059669' : 
-                                                           app.status === 'rejected' ? '#dc2626' : '#d97706'
-                                                }}>
-                                                    {app.status}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <button 
-                                            onClick={() => setSelectedApp(app)}
-                                            style={{
-                                                padding: '8px 16px',
-                                                background: '#002244',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Review
+    <div key={app.id} style={{ 
+        padding: '15px', 
+        border: '1px solid #e2e8f0', 
+        borderRadius: '8px',
+        background: selectedApp?.id === app.id ? '#f0f9ff' : 'white'
+    }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+            <div>
+                <h3 style={{ margin: '0 0 10px 0', color: '#002244' }}>
+                    {app.discord_username} - {app.form_title}
+                </h3>
+                <p style={{ margin: '0 0 10px 0', color: '#64748b' }}>
+                    Submitted: {new Date(app.created_at).toLocaleDateString()}
+                </p>
+                <div style={{ color: '#64748b', fontSize: '14px' }}>
+                    Status: <span style={{ 
+                        color: app.status === 'approved' ? '#059669' : 
+                               app.status === 'rejected' ? '#dc2626' : '#d97706'
+                    }}>
+                        {app.status}
+                    </span>
+                    {app.status !== 'pending' && (
+                        <span style={{ 
+                            marginLeft: '15px',
+                            color: app.notification_sent ? '#059669' : '#d97706'
+                        }}>
+                            Notification: {app.notification_sent ? 'Sent' : 'Pending'}
+                        </span>
+                    )}
+                </div>
+            </div>
+            <button 
+                onClick={() => setSelectedApp(app)}
+                style={{
+                    padding: '8px 16px',
+                    background: '#002244',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                }}
+            >
+                Review
                                         </button>
                                     </div>
                                 </div>
@@ -618,7 +730,7 @@ const AdminDashboard = () => {
                         {/* Existing Forms */}
                         <h3 style={{ color: '#002244', marginBottom: '15px' }}>Existing Forms</h3>
                         <div style={{ display: 'grid', gap: '10px' }}>
-                            {applicationForms.map(form => (
+                            {applicationForms && applicationForms.map(form => (
                                 <div key={form.id} style={{ 
                                     padding: '15px', 
                                     border: '1px solid #e2e8f0', 
@@ -634,7 +746,7 @@ const AdminDashboard = () => {
                                                 {form.description || 'No description'}
                                             </p>
                                             <div style={{ color: '#64748b', fontSize: '14px' }}>
-                                                {form.fields.length} field(s) • 
+                                                {form.fields ? form.fields.length : 0} field(s)
                                                 Limit: {form.application_limit} • 
                                                 Deadline: {form.deadline ? new Date(form.deadline).toLocaleDateString() : 'None'}
                                             </div>
@@ -702,6 +814,90 @@ const AdminDashboard = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Notifications Tab */}
+{activeTab === 'notifications' && (
+    <div style={{ 
+        background: 'white', 
+        padding: '20px', 
+        borderRadius: '10px',
+        marginBottom: '20px'
+    }}>
+        <h2 style={{ marginBottom: '20px', color: '#002244' }}>Discord Notifications</h2>
+        
+        <div style={{ marginBottom: '30px' }}>
+            <h3 style={{ color: '#002244', marginBottom: '15px' }}>Bot Configuration</h3>
+            <div style={{ display: 'grid', gap: '15px' }}>
+                <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                        Discord Bot Token:
+                    </label>
+                    <input
+                        type="password"
+                        value={notificationConfig.botToken}
+                        onChange={(e) => setNotificationConfig({...notificationConfig, botToken: e.target.value})}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                        placeholder="Enter Discord bot token"
+                    />
+                    <p style={{ fontSize: '12px', color: '#64748b', marginTop: '5px' }}>
+                        Get this from https://discord.com/developers/applications
+                    </p>
+                </div>
+                <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                        Default Message:
+                    </label>
+                    <textarea
+                        value={notificationConfig.defaultMessage}
+                        onChange={(e) => setNotificationConfig({...notificationConfig, defaultMessage: e.target.value})}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', minHeight: '60px' }}
+                        placeholder="Default notification message"
+                    />
+                </div>
+                <button
+                    onClick={updateNotificationConfig}
+                    style={{
+                        padding: '10px 20px',
+                        background: '#002244',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Save Configuration
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <h3 style={{ color: '#002244', marginBottom: '15px' }}>Pending Notifications</h3>
+            <p style={{ marginBottom: '15px', color: '#64748b' }}>
+                {pendingNotifications} notification(s) waiting to be sent to applicants
+            </p>
+            <button
+                onClick={sendAllNotifications}
+                disabled={pendingNotifications === 0}
+                style={{
+                    padding: '10px 20px',
+                    background: pendingNotifications === 0 ? '#9ca3af' : '#059669',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: pendingNotifications === 0 ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold'
+                }}
+            >
+                Send All Pending Notifications
+            </button>
+            {pendingNotifications > 0 && (
+                <p style={{ fontSize: '14px', color: '#64748b', marginTop: '10px' }}>
+                    This will send Discord messages to all applicants with pending notifications.
+                </p>
+            )}
+        </div>
+    </div>
+)}
                         
                         {/* Whitelist Members */}
                         <h3 style={{ color: '#002244', marginBottom: '15px' }}>Current Admins</h3>
@@ -737,111 +933,365 @@ const AdminDashboard = () => {
                 )}
 
                 {/* Review Modal */}
-                {selectedApp && (
-                    <div style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 1000
-                    }}>
-                        <div style={{
-                            background: 'white',
-                            padding: '30px',
-                            borderRadius: '10px',
-                            width: '90%',
-                            maxWidth: '600px',
-                            maxHeight: '80vh',
-                            overflow: 'auto'
+{selectedApp && (
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000
+    }}>
+        <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '700px',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+        }}>
+            {/* Header */}
+            <div style={{ marginBottom: '25px' }}>
+                <h2 style={{ 
+                    color: '#002244', 
+                    margin: '0 0 10px 0',
+                    fontSize: '24px',
+                    fontWeight: 'bold'
+                }}>
+                    Review Application
+                </h2>
+                <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '15px',
+                    color: '#64748b',
+                    fontSize: '14px'
+                }}>
+                    <span><strong>Applicant:</strong> {selectedApp.discord_username}</span>
+                    <span><strong>Form:</strong> {selectedApp.form_title}</span>
+                    <span><strong>Submitted:</strong> {new Date(selectedApp.created_at).toLocaleDateString()}</span>
+                    {selectedApp.roblox_username && (
+                        <span><strong>Roblox:</strong> {selectedApp.roblox_username}</span>
+                    )}
+                </div>
+            </div>
+
+            {/* Application Data */}
+            <div style={{ marginBottom: '25px' }}>
+                <h3 style={{ 
+                    color: '#002244', 
+                    marginBottom: '15px',
+                    fontSize: '18px',
+                    borderBottom: '2px solid #e2e8f0',
+                    paddingBottom: '8px'
+                }}>
+                    Application Responses
+                </h3>
+                <div style={{ 
+                    background: '#f8fafc', 
+                    padding: '20px', 
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0'
+                }}>
+                    {Object.entries(selectedApp.responses).map(([key, value]) => (
+                        <div key={key} style={{ 
+                            marginBottom: '15px',
+                            paddingBottom: '15px',
+                            borderBottom: '1px solid #e2e8f0',
+                            display: 'flex',
+                            flexDirection: 'column'
                         }}>
-                            <h2 style={{ color: '#002244', marginBottom: '20px' }}>
-                                Review Application - {selectedApp.discord_username}
-                            </h2>
-                            
-                            <div style={{ marginBottom: '20px' }}>
-                                <h4 style={{ color: '#002244' }}>Application Data:</h4>
-                                <pre style={{ 
-                                    background: '#f8fafc', 
-                                    padding: '15px', 
-                                    borderRadius: '5px',
-                                    whiteSpace: 'pre-wrap',
-                                    fontSize: '14px'
-                                }}>
-                                    {JSON.stringify(selectedApp.responses, null, 2)}
-                                </pre>
-                            </div>
-
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
-                                    Feedback:
-                                </label>
-                                <textarea
-                                    value={feedback}
-                                    onChange={(e) => setFeedback(e.target.value)}
-                                    placeholder="Enter your feedback here..."
-                                    style={{
-                                        width: '100%',
-                                        minHeight: '100px',
-                                        padding: '10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '4px',
-                                        resize: 'vertical'
-                                    }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                <button
-                                    onClick={() => handleReview(selectedApp.id, 'approved')}
-                                    style={{
-                                        padding: '10px 20px',
-                                        background: '#059669',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Approve
-                                </button>
-                                <button
-                                    onClick={() => handleReview(selectedApp.id, 'rejected')}
-                                    style={{
-                                        padding: '10px 20px',
-                                        background: '#dc2626',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Reject
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setSelectedApp(null);
-                                        setFeedback('');
-                                    }}
-                                    style={{
-                                        padding: '10px 20px',
-                                        background: '#6b7280',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
+                            <strong style={{ 
+                                color: '#002244', 
+                                marginBottom: '5px',
+                                fontSize: '14px'
+                            }}>
+                                {key}:
+                            </strong>
+                            <span style={{ 
+                                color: '#374151', 
+                                fontSize: '14px',
+                                lineHeight: '1.5',
+                                whiteSpace: 'pre-wrap'
+                            }}>
+                                {value || <em style={{ color: '#9ca3af' }}>Not provided</em>}
+                            </span>
                         </div>
-                    </div>
-                )}
+                    ))}
+                </div>
+            </div>
+
+            {/* Feedback Section */}
+            <div style={{ marginBottom: '25px' }}>
+                <h3 style={{ 
+                    color: '#002244', 
+                    marginBottom: '15px',
+                    fontSize: '18px',
+                    borderBottom: '2px solid #e2e8f0',
+                    paddingBottom: '8px'
+                }}>
+                    Review Feedback
+                </h3>
+                <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Provide detailed feedback for the applicant. This will be included in the Discord notification if you choose to send it now."
+                    style={{
+                        width: '100%',
+                        minHeight: '120px',
+                        padding: '15px',
+                        border: '2px solid #e2e8f0',
+                        borderRadius: '8px',
+                        resize: 'vertical',
+                        fontSize: '14px',
+                        fontFamily: 'inherit',
+                        lineHeight: '1.5',
+                        transition: 'border-color 0.2s ease'
+                    }}
+                    onFocus={(e) => {
+                        e.target.style.borderColor = '#002244';
+                    }}
+                    onBlur={(e) => {
+                        e.target.style.borderColor = '#e2e8f0';
+                    }}
+                />
+            </div>
+
+            {/* Custom Notification Message */}
+            <div style={{ marginBottom: '25px' }}>
+                <h3 style={{ 
+                    color: '#002244', 
+                    marginBottom: '15px',
+                    fontSize: '18px',
+                    borderBottom: '2px solid #e2e8f0',
+                    paddingBottom: '8px'
+                }}>
+                    Notification Settings
+                </h3>
+                <div style={{ marginBottom: '15px' }}>
+                    <label style={{ 
+                        display: 'block', 
+                        marginBottom: '8px', 
+                        fontWeight: 'bold',
+                        color: '#374151',
+                        fontSize: '14px'
+                    }}>
+                        Custom Notification Message (optional):
+                    </label>
+                    <textarea
+                        value={customMessage}
+                        onChange={(e) => setCustomMessage(e.target.value)}
+                        placeholder="This custom message will be sent via Discord if you choose to notify the applicant now. Leave empty to use the default message."
+                        style={{
+                            width: '100%',
+                            minHeight: '80px',
+                            padding: '12px',
+                            border: '2px solid #e2e8f0',
+                            borderRadius: '6px',
+                            resize: 'vertical',
+                            fontSize: '14px',
+                            fontFamily: 'inherit',
+                            lineHeight: '1.4',
+                            transition: 'border-color 0.2s ease'
+                        }}
+                        onFocus={(e) => {
+                            e.target.style.borderColor = '#002244';
+                        }}
+                        onBlur={(e) => {
+                            e.target.style.borderColor = '#e2e8f0';
+                        }}
+                    />
+                </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '12px',
+                marginBottom: '15px'
+            }}>
+                {/* Send Now Buttons */}
+                <button
+                    onClick={() => handleReview(selectedApp.id, 'approved', true)}
+                    style={{
+                        padding: '12px 20px',
+                        background: '#059669',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.background = '#047857';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.background = '#059669';
+                    }}
+                >
+                    <span>✓</span>
+                    Approve & Send Now
+                </button>
+                <button
+                    onClick={() => handleReview(selectedApp.id, 'rejected', true)}
+                    style={{
+                        padding: '12px 20px',
+                        background: '#dc2626',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.background = '#b91c1c';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.background = '#dc2626';
+                    }}
+                >
+                    <span>✗</span>
+                    Reject & Send Now
+                </button>
+            </div>
+
+            <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '12px',
+                marginBottom: '20px'
+            }}>
+                {/* Send Later Buttons */}
+                <button
+                    onClick={() => handleReview(selectedApp.id, 'approved', false)}
+                    style={{
+                        padding: '12px 20px',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.background = '#2563eb';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.background = '#3b82f6';
+                    }}
+                >
+                    <span>✓</span>
+                    Approve & Send Later
+                </button>
+                <button
+                    onClick={() => handleReview(selectedApp.id, 'rejected', false)}
+                    style={{
+                        padding: '12px 20px',
+                        background: '#f59e0b',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.background = '#d97706';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.background = '#f59e0b';
+                    }}
+                >
+                    <span>✗</span>
+                    Reject & Send Later
+                </button>
+            </div>
+
+            {/* Cancel Button */}
+            <div style={{ textAlign: 'center' }}>
+                <button
+                    onClick={() => {
+                        setSelectedApp(null);
+                        setFeedback('');
+                        setCustomMessage('');
+                    }}
+                    style={{
+                        padding: '10px 25px',
+                        background: 'transparent',
+                        color: '#6b7280',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.background = '#f8fafc';
+                        e.target.style.borderColor = '#d1d5db';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.background = 'transparent';
+                        e.target.style.borderColor = '#e5e7eb';
+                    }}
+                >
+                    Cancel Review
+                </button>
+            </div>
+
+            {/* Help Text */}
+            <div style={{ 
+                marginTop: '20px',
+                padding: '15px',
+                background: '#f0f9ff',
+                borderRadius: '6px',
+                border: '1px solid #bae6fd'
+            }}>
+                <p style={{ 
+                    margin: 0, 
+                    color: '#0369a1',
+                    fontSize: '13px',
+                    lineHeight: '1.4'
+                }}>
+                    <strong>💡 Notification Guide:</strong><br/>
+                    • <strong>Send Now:</strong> Immediately notifies the applicant via Discord<br/>
+                    • <strong>Send Later:</strong> Saves for bulk sending from Notifications tab<br/>
+                    • Custom messages override the default notification template
+                </p>
+            </div>
+        </div>
+    </div>
+)}
             </div>
         </div>
     );

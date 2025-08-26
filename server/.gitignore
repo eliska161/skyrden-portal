@@ -1,0 +1,4 @@
+# extra rules only for server
+node_modules/
+.env
+*.log

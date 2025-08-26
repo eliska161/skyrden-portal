@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../database/db');
+const { sendApplicationNotification, sendAllPendingNotifications, updateBotConfig, getBotConfig } = require('../bot/discord-bot');
 const router = express.Router();
 
 // Middleware to check if user is admin
@@ -39,24 +40,105 @@ router.get('/applications', requireAdmin, (req, res) => {
     });
 });
 
-// Review application
-router.post('/review', requireAdmin, (req, res) => {
-    const { applicationId, status, feedback } = req.body;
+// Review application with notification options
+router.post('/review', requireAdmin, async (req, res) => {
+    const { applicationId, status, feedback, sendNotification, customMessage } = req.body;
     
-    db.run(
-        `UPDATE application_responses 
-         SET status = ?, admin_feedback = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP 
-         WHERE id = ?`,
-        [status, feedback, req.user.id, applicationId],
-        function(err) {
-            if (err) {
-                console.error('Database error:', err);
-                return res.status(500).json({ error: err.message });
+    try {
+        // Update application status
+        db.run(
+            `UPDATE application_responses 
+             SET status = ?, admin_feedback = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP,
+                 notification_sent = ? 
+             WHERE id = ?`,
+            [status, feedback, req.user.id, sendNotification ? 1 : 0, applicationId],
+            async function(err) {
+                if (err) {
+                    console.error('Database error:', err);
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                // Send notification immediately if requested
+                if (sendNotification) {
+                    const application = await new Promise((resolve, reject) => {
+                        db.get(`
+                            SELECT ar.*, af.title as form_title 
+                            FROM application_responses ar
+                            JOIN application_forms af ON ar.application_form_id = af.id
+                            WHERE ar.id = ?
+                        `, [applicationId], (err, row) => {
+                            if (err) reject(err);
+                            else resolve(row);
+                        });
+                    });
+                    
+                    if (application) {
+                        const notificationSent = await sendApplicationNotification(application, customMessage);
+                        if (!notificationSent) {
+                            console.warn('Failed to send immediate notification');
+                        }
+                    }
+                }
+                
+                res.json({ 
+                    success: true, 
+                    message: 'Application reviewed' + (sendNotification ? ' and notification sent' : ''),
+                    notificationSent: sendNotification
+                });
             }
-            
-            res.json({ success: true, message: 'Application reviewed' });
+        );
+    } catch (error) {
+        console.error('Review failed:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Send all pending notifications
+router.post('/notifications/send-all', requireAdmin, async (req, res) => {
+    try {
+        const result = await sendAllPendingNotifications();
+        res.json({
+            success: true,
+            message: `Sent ${result.success} notifications, ${result.failed} failed`,
+            results: result
+        });
+    } catch (error) {
+        console.error('Failed to send all notifications:', error);
+        res.status(500).json({ error: 'Failed to send notifications' });
+    }
+});
+
+// Get pending notification count
+router.get('/notifications/pending', requireAdmin, (req, res) => {
+    db.get(`
+        SELECT COUNT(*) as count 
+        FROM application_responses 
+        WHERE status IN ('approved', 'rejected') 
+        AND notification_sent = 0
+        AND admin_feedback IS NOT NULL
+    `, (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
         }
-    );
+        res.json({ pendingCount: row.count });
+    });
+});
+
+// Update bot configuration
+router.post('/notifications/config', requireAdmin, (req, res) => {
+    const { defaultMessage, botToken } = req.body;
+    
+    updateBotConfig({
+        defaultMessage: defaultMessage || getBotConfig().defaultMessage,
+        botToken: botToken || getBotConfig().botToken
+    });
+    
+    res.json({ success: true, message: 'Bot configuration updated' });
+});
+
+// Get bot configuration
+router.get('/notifications/config', requireAdmin, (req, res) => {
+    res.json(getBotConfig());
 });
 
 // Get all application forms

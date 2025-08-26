@@ -16,10 +16,10 @@ db.serialize(() => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Remove old applications table if it exists
+    // Remove old applications table if it exists (replaced by application_responses)
     db.run(`DROP TABLE IF EXISTS applications`);
 
-    // Update application_forms table with new fields
+    // Application forms table with all new columns
     db.run(`CREATE TABLE IF NOT EXISTS application_forms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
@@ -46,6 +46,8 @@ db.serialize(() => {
         reviewed_by INTEGER,
         reviewed_at DATETIME,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        notification_sent BOOLEAN DEFAULT 0,
+        notification_sent_at DATETIME,
         FOREIGN KEY (application_form_id) REFERENCES application_forms (id),
         FOREIGN KEY (user_id) REFERENCES users (id),
         FOREIGN KEY (reviewed_by) REFERENCES users (id)
@@ -60,5 +62,38 @@ db.serialize(() => {
 
     console.log('Database tables initialized');
 });
+
+// Function to add column only if it doesn't exist (safe method)
+function addColumnIfNotExists(tableName, columnName, columnDefinition) {
+    // Check if column exists by trying to select it
+    db.get(
+        `SELECT ${columnName} FROM ${tableName} LIMIT 1`,
+        (err) => {
+            if (err && err.message.includes('no such column')) {
+                // Column doesn't exist, so add it
+                db.run(
+                    `ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefinition}`,
+                    (err) => {
+                        if (err) {
+                            console.error(`Error adding column ${columnName} to ${tableName}:`, err);
+                        } else {
+                            console.log(`✓ Added column ${columnName} to ${tableName}`);
+                        }
+                    }
+                );
+            } else if (err) {
+                console.error(`Error checking column ${columnName} in ${tableName}:`, err);
+            } else {
+                console.log(`✓ Column ${columnName} already exists in ${tableName}`);
+            }
+        }
+    );
+}
+
+// Add new columns safely after table creation
+setTimeout(() => {
+    addColumnIfNotExists('application_responses', 'notification_sent', 'BOOLEAN DEFAULT 0');
+    addColumnIfNotExists('application_responses', 'notification_sent_at', 'DATETIME');
+}, 1000);
 
 module.exports = db;
