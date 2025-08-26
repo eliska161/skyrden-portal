@@ -40,6 +40,18 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'fallback-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Allow cross-site cookies in production
+    }
+}));
+
 // Passport initialization - ADD THIS LINE
 require('./config/passport'); // This imports and configures the strategies
 
