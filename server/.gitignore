@@ -2,3 +2,10 @@
 node_modules/
 .env
 *.log
+
+
+# Environment variables
+*.env
+.env
+client/.env
+server/.env
