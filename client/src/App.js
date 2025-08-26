@@ -125,15 +125,7 @@ function App() {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     {/* Icon Logo */}
-                    <img 
-                        src={logoIcon} 
-                        alt="Skyrden Airlines" 
-                        style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '8px'
-                        }}
-                    />
+            
                     {/* Text Logo - White version for dark background */}
                     <img 
                         src={logoTextWhite} 
