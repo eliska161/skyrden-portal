@@ -26,7 +26,7 @@ git add
 *.env
 .env
 client/.env
-server/.env
+../server/.env
 
 npm-debug.log*
 yarn-debug.log*
