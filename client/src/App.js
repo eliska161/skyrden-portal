@@ -18,22 +18,22 @@ function App() {
     const logoTextBlue = `${process.env.PUBLIC_URL}/logos/text-blue.png`;
     const logoTextWhite = `${process.env.PUBLIC_URL}/logos/text-white.png`;
 
-    useEffect(() => {
+   useEffect(() => {
     checkAuthStatus();
     
     const urlParams = new URLSearchParams(window.location.search);
     
-    // ADD THIS BLOCK AFTER checkAuthStatus() and before roblox_linked check:
+    // Handle Discord auth success
     if (urlParams.get('auth') === 'success') {
         setMessage('Successfully logged in with Discord!');
         setTimeout(() => {
             checkAuthStatus(); // Re-check auth status
             window.history.replaceState({}, document.title, window.location.pathname);
-        }, 1000);
+        }, 2000); // Increased delay for better auth sync
         setTimeout(() => setMessage(''), 5000);
     }
     
-    // Your existing roblox_linked code stays the same...
+    // Handle Roblox linking success
     if (urlParams.get('roblox_linked') === 'true') {
         const username = urlParams.get('username');
         setMessage(username ? `Successfully connected Roblox account: ${username}` : 'Roblox account connected successfully!');
@@ -41,12 +41,12 @@ function App() {
         setTimeout(() => {
             checkAuthStatus();
             window.history.replaceState({}, document.title, window.location.pathname);
-        }, 1000);
+        }, 2000); // Increased delay for consistency
         
         setTimeout(() => setMessage(''), 5000);
     }
     
-    // Your existing error handling code stays the same...
+    // Handle authentication errors
     if (urlParams.get('error')) {
         if (urlParams.get('error') === 'not_admin') {
             setMessage('Access denied: You are not an administrator');
