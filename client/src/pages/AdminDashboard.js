@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = 'https://skyrden-portal-production.up.railway.app'; // Replace with your real server URL
 
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);
@@ -19,7 +19,7 @@ const AdminDashboard = () => {
 const [pendingNotifications, setPendingNotifications] = useState(0);
 const [customMessage, setCustomMessage] = useState('');
 
-const config = { API_URL: process.env.REACT_APP_API_URL };
+
 
     // Form builder state
     const [newForm, setNewForm] = useState({
