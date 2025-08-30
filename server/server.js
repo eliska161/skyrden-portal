@@ -9,7 +9,28 @@ const db = require('./database/db');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// CORS configuration - SINGLE CONFIGURATION
+// Middleware
+app.use(cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false,
+        maxAge: 24 * 60 * 60 * 1000
+    }
+}));
+
+// Add this to your CORS configuration in server.js
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? process.env.CLIENT_URL 
