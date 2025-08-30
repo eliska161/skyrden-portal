@@ -74,9 +74,9 @@ useEffect(() => {
         console.log('Auth response status:', response.status, response.ok);
         
         if (!response.ok) {
-            if (response.status === 401) {
-                // User is not authenticated - this is normal, not an error
-                console.log('User not authenticated');
+            if (response.status === 401 || response.status === 403) {
+                // User is not authenticated - this is normal
+                console.log('User not authenticated (expected for non-logged-in users)');
                 setUser(null);
                 setLoading(false);
                 return;
@@ -96,9 +96,12 @@ useEffect(() => {
             console.log('Setting user:', data.user);
             setUser(data.user);
         } else {
-            console.log('No authenticated user found');
+            console.log('No authenticated user found - showing landing page');
             setUser(null);
         }
+        
+        // IMPORTANT: Always set loading to false after getting a response
+        setLoading(false);
         
     } catch (error) {
         console.error('Auth check failed:', error);
@@ -107,11 +110,7 @@ useEffect(() => {
             return;
         } else {
             setUser(null);
-        }
-    } finally {
-        // Only set loading to false if we're not going to retry
-        if (retries <= 1) {
-            setLoading(false);
+            setLoading(false); // Make sure to set loading false on final error
         }
     }
 };
