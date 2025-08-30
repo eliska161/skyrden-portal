@@ -1,0 +1,23 @@
+{
+  "name": "skyrden-portal",
+  "version": "1.0.0",
+  "description": "Skyrden Portal - Application Management System",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "start": "cd server && npm install && npm start",
+    "dev": "cd server && npm run dev",
+    "build": "cd client && npm install && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eliska161/skyrden-portal.git"
+  },
+  "author": "eliska161",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eliska161/skyrden-portal/issues"
+  },
+  "homepage": "https://github.com/eliska161/skyrden-portal#readme"
+}
