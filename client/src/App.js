@@ -4,7 +4,7 @@ import './App.css';
 
 // Configuration
 const config = {
-  API_URL: process.env.REACT_APP_API_URL || 'http://skd-portal.up.railway.app'
+  API_URL: process.env.REACT_APP_API_URL || 'https://skd-portal.up.railway.app'
 };
 
 // Simple Loading Component

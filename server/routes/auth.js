@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 
 // Environment configuration
 const CLIENT_URL = process.env.CLIENT_URL || 'https://skyrden-portal.netlify.app';
-const API_URL = process.env.API_URL || 'http://skd-portal.up.railway.app';
+const API_URL = process.env.API_URL || 'https://skd-portal.up.railway.app';
 const JWT_SECRET = process.env.JWT_SECRET || 'skyrden-jwt-secret-key';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 const ROBLOX_CLIENT_ID = process.env.ROBLOX_CLIENT_ID;

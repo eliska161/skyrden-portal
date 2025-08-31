@@ -7,7 +7,7 @@ const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 
 // Hardcode the callback URL to fix the "undefined" issue
-const CALLBACK_URL = 'http://skd-portal.up.railway.app/api/auth/discord/callback';
+const CALLBACK_URL = 'https://skd-portal.up.railway.app/api/auth/discord/callback';
 
 // Enable debugging
 const DEBUG = true;
