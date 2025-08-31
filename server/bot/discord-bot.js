@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const mongoose = require('mongoose');
-const ApplicationSubmission = require('./models/ApplicationSubmission');
+const ApplicationSubmission = require('../models/ApplicationSubmission');
 const config = require('./config');
 
 // Create Discord client with necessary intents
