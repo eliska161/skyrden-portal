@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// IMPORTANT: discord_id must be a String, not an ObjectId
+// Schema for recruitment portal users
 const UserSchema = new mongoose.Schema({
   discord_id: {
     type: String,  // Keep as String, not ObjectId!
@@ -19,11 +19,19 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-  roblox_id: {
+  github_id: {
     type: String,
     default: null
   },
-  roblox_username: {
+  github_username: {
+    type: String,
+    default: null
+  },
+  github_avatar: {
+    type: String,
+    default: null
+  },
+  github_name: {
     type: String,
     default: null
   },
@@ -38,12 +46,44 @@ const UserSchema = new mongoose.Schema({
   last_login: {
     type: Date,
     default: Date.now
-  }
+  },
+  applications: [{
+    position: String,
+    experience: String,
+    skills: String,
+    why_join: String,
+    availability: String,
+    status: {
+      type: String,
+      enum: ['submitted', 'under_review', 'interview', 'offer', 'rejected'],
+      default: 'submitted'
+    },
+    submitted_at: {
+      type: Date,
+      default: Date.now
+    },
+    notes: String
+  }]
 });
 
 // Helper methods
 UserSchema.methods.updateLastLogin = function() {
   this.last_login = Date.now();
+  return this.save();
+};
+
+// Add application method
+UserSchema.methods.addApplication = function(applicationData) {
+  this.applications.push({
+    position: applicationData.position,
+    experience: applicationData.experience,
+    skills: applicationData.skills,
+    why_join: applicationData.whyJoin,
+    availability: applicationData.availability,
+    submitted_at: new Date(),
+    status: 'submitted'
+  });
+  
   return this.save();
 };
 

@@ -11,9 +11,8 @@ const CLIENT_URL = process.env.CLIENT_URL || 'https://skyrden-portal.netlify.app
 const API_URL = process.env.API_URL || 'https://skd-portal.up.railway.app';
 const JWT_SECRET = process.env.JWT_SECRET || 'skyrden-jwt-secret-key';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
-const ROBLOX_CLIENT_ID = process.env.ROBLOX_CLIENT_ID;
-const ROBLOX_CLIENT_SECRET = process.env.ROBLOX_CLIENT_SECRET;
-const ROBLOX_API_KEY = process.env.ROBLOX_API_KEY;
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
 
 // Enable verbose debugging
 const DEBUG = true;
@@ -22,6 +21,13 @@ const DEBUG = true;
 const generateRandomString = (length = 32) => {
   return crypto.randomBytes(length).toString('hex').slice(0, length);
 };
+
+// Helper function to generate HMAC for state validation
+function generateHmac(data, secret) {
+  return crypto.createHmac('sha256', secret)
+    .update(data)
+    .digest('base64');
+}
 
 // Enhanced debug logger
 const debugLog = (area, ...args) => {
@@ -84,8 +90,8 @@ router.get('/status', (req, res) => {
         });
         user = {
           discord_id: decoded.id,
-          discord_username: decoded.username || 'Discord User',
-          roblox_username: decoded.roblox || null,
+          discord_username: decoded.username || 'User',
+          github_username: decoded.github || null,
           is_admin: decoded.is_admin || false
         };
         authenticated = true;
@@ -104,7 +110,7 @@ router.get('/status', (req, res) => {
   if (authenticated && user) {
     // Ensure we always have a username
     if (!user.discord_username) {
-      user.discord_username = 'Discord User';
+      user.discord_username = 'User';
       debugLog('STATUS', 'Fixed missing username in user object');
     }
     
@@ -141,7 +147,7 @@ router.get('/discord', (req, res, next) => {
   }
   
   passport.authenticate('discord', {
-    scope: ['identify', 'email', 'guilds.join'],
+    scope: ['identify', 'email'],
     state: generateRandomString(16) // Add state parameter for CSRF protection
   })(req, res, next);
 });
@@ -170,7 +176,7 @@ router.get('/discord/callback', (req, res, next) => {
     try {
       // Ensure we always use the correct Discord ID
       const discordId = profile.discord_id || profile.id;
-      const username = profile.discord_username || profile.username || 'Discord User';
+      const username = profile.discord_username || profile.username || 'User';
       
       debugLog('DISCORD-ID-CHECK', 'Using Discord ID and username:', {
         id: discordId,
@@ -183,7 +189,7 @@ router.get('/discord/callback', (req, res, next) => {
         discord_username: username,
         discord_avatar: profile.discord_avatar || profile.avatar,
         discord_email: profile.discord_email || profile.email,
-        roblox_username: profile.roblox_username || null,
+        github_username: profile.github_username || null,
         is_admin: profile.is_admin || false
       };
       
@@ -203,7 +209,7 @@ router.get('/discord/callback', (req, res, next) => {
         {
           id: user.discord_id,
           username: user.discord_username,
-          roblox: user.roblox_username,
+          github: user.github_username,
           is_admin: user.is_admin
         },
         JWT_SECRET,
@@ -266,8 +272,8 @@ router.post('/token-login', (req, res) => {
     // Create user object from token data with fallback for missing username
     const user = {
       discord_id: decoded.id,
-      discord_username: decoded.username || 'Discord User',
-      roblox_username: decoded.roblox || null,
+      discord_username: decoded.username || 'User',
+      github_username: decoded.github || null,
       is_admin: decoded.is_admin || false
     };
     
@@ -296,7 +302,7 @@ router.post('/token-login', (req, res) => {
           { 
             $set: { 
               last_login: new Date(),
-              discord_username: decoded.username || 'Discord User'
+              discord_username: decoded.username || 'User'
             }
           },
           { upsert: false }
@@ -328,310 +334,156 @@ router.post('/token-login', (req, res) => {
   }
 });
 
-// Roblox authentication
-router.get('/roblox', (req, res) => {
-  debugLog('ROBLOX-AUTH', 'Roblox auth requested');
-  
-  // Check different auth sources
-  const sessionUser = req.session && req.session.user;
-  const passportUser = req.isAuthenticated && req.isAuthenticated() ? req.user : null;
-  let tokenUser = null;
-  
-  // Check for token in query
-  const authToken = req.query.token;
-  if (authToken) {
-    try {
-      const decoded = jwt.verify(authToken, JWT_SECRET);
-      if (decoded && decoded.id) {
-        tokenUser = {
-          discord_id: decoded.id,
-          discord_username: decoded.username || 'Discord User',
-          roblox_username: decoded.roblox || null,
-          is_admin: decoded.is_admin || false
-        };
-        
-        debugLog('ROBLOX-AUTH', 'Valid token provided in URL');
-      }
-    } catch (e) {
-      debugLog('ROBLOX-AUTH', 'Invalid token in URL:', e.message);
-    }
-  }
-  
-  // Check for direct user ID
-  const directUserId = req.query.user_id;
-  let directUser = null;
-  
-  if (directUserId && directUserId.length > 10) {
-    directUser = {
-      discord_id: directUserId,
-      discord_username: req.query.username || 'Discord User',
-      roblox_username: null,
-      is_admin: false
-    };
-    
-    debugLog('ROBLOX-AUTH', 'Direct user ID provided:', directUserId);
-  }
-  
-  // Determine which user to use
-  const user = sessionUser || passportUser || tokenUser || directUser;
-  
-  debugLog('ROBLOX-AUTH', 'Auth sources:', {
-    hasSessionUser: !!sessionUser,
-    hasPassportUser: !!passportUser,
-    hasTokenUser: !!tokenUser,
-    hasDirectUser: !!directUser,
-    usingUser: user ? {
-      id: user.discord_id,
-      username: user.discord_username
-    } : 'No user found'
-  });
-  
-  if (user) {
-    // Generate state for CSRF protection
-    const state = generateRandomString(32);
-    
-    // Store state and user ID for callback
-    if (req.session) {
-      req.session.robloxState = state;
-      req.session.pendingRobloxLink = user.discord_id;
-      
-      // Store user in session if not already there
-      if (!req.session.user) {
-        req.session.user = user;
-        debugLog('ROBLOX-AUTH', 'Stored user in session');
-      }
-      
-      debugLog('ROBLOX-AUTH', 'Session data set for Roblox flow', {
-        sessionID: req.sessionID,
-        state: state.substring(0, 8) + '...',
-        pendingLinkId: user.discord_id
-      });
-    } else {
-      debugLog('ROBLOX-AUTH', 'WARNING: No session available for Roblox flow');
-    }
-    
-    // Construct Roblox OAuth URL
-    const robloxAuthUrl = `https://apis.roblox.com/oauth/v1/authorize?client_id=${ROBLOX_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(`${API_URL}/api/auth/roblox/callback`)}&scope=openid+profile&state=${state}`;
-    
-    debugLog('ROBLOX-AUTH', 'Redirecting to Roblox OAuth');
-    return res.redirect(robloxAuthUrl);
-  } else {
-    debugLog('ROBLOX-AUTH', 'No authenticated user found, rejecting Roblox auth');
-    return res.redirect(`${CLIENT_URL}/?error=discord_first&message=Please+log+in+with+Discord+first`);
-  }
-});
-
-// Direct Roblox linking (for when sessions fail)
-router.get('/direct-roblox-link', (req, res) => {
+// GitHub authentication (stateless)
+router.get('/github-link', (req, res) => {
   const { discord_id, username } = req.query;
   
   if (!discord_id) {
     return res.status(400).json({ error: 'Missing discord_id parameter' });
   }
   
-  debugLog('DIRECT-LINK', 'Direct Roblox linking requested', {
+  debugLog('GITHUB-AUTH', 'GitHub auth requested', {
     discord_id,
     username: username || 'Not provided'
   });
   
-  // Generate token for this user
-  const token = jwt.sign(
-    { 
-      id: discord_id,
-      username: username || 'Discord User'
-    },
-    JWT_SECRET,
-    { expiresIn: '1h' } // Short expiry for security
-  );
+  // Generate a secure state parameter that includes the user info
+  const userInfo = {
+    discord_id,
+    username: username || 'User',
+    timestamp: Date.now()
+  };
   
-  // Create a temporary session with this user
-  if (req.session) {
-    req.session.user = {
-      discord_id,
-      discord_username: username || 'Discord User',
-      roblox_username: null,
-      is_admin: false
-    };
-    
-    req.session.pendingRobloxLink = discord_id;
-    debugLog('DIRECT-LINK', 'Created session for direct linking');
-  } else {
-    debugLog('DIRECT-LINK', 'No session available for direct linking');
-  }
+  // Encrypt user info into the state parameter
+  const stateData = Buffer.from(JSON.stringify(userInfo)).toString('base64');
+  const state = `${stateData}.${generateHmac(stateData, JWT_SECRET)}`;
   
-  // Redirect to regular Roblox auth with token
-  return res.redirect(`/api/auth/roblox?token=${token}&user_id=${discord_id}&username=${encodeURIComponent(username || 'Discord User')}`);
+  // Construct GitHub OAuth URL
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(`${API_URL}/api/auth/github-callback`)}&scope=user:email&state=${encodeURIComponent(state)}`;
+  
+  debugLog('GITHUB-AUTH', 'Redirecting to GitHub OAuth', {
+    state: state.substring(0, 20) + '...',
+    discord_id
+  });
+  
+  return res.redirect(githubAuthUrl);
 });
 
-// Roblox callback
-router.get('/roblox/callback', async (req, res) => {
+// GitHub callback (stateless)
+router.get('/github-callback', async (req, res) => {
   const { code, state } = req.query;
   
-  debugLog('ROBLOX-CALLBACK', 'Roblox callback received', {
+  debugLog('GITHUB-CALLBACK', 'GitHub callback received', {
     hasCode: !!code,
     hasState: !!state
   });
   
-  // Verify state parameter
-  if (!state || !req.session || state !== req.session.robloxState) {
-    debugLog('ROBLOX-CALLBACK', 'Invalid state parameter', {
-      receivedState: state ? state.substring(0, 8) + '...' : 'none',
-      sessionState: req.session && req.session.robloxState ? 
-        req.session.robloxState.substring(0, 8) + '...' : 'none',
-      hasSession: !!req.session
-    });
-    
-    return res.redirect(`${CLIENT_URL}/?error=invalid_state&message=Session+expired+or+invalid+request`);
-  }
-  
-  // Get Discord ID for linking
-  const discordId = req.session.pendingRobloxLink;
-  
-  if (!discordId) {
-    debugLog('ROBLOX-CALLBACK', 'No Discord ID found for linking');
-    return res.redirect(`${CLIENT_URL}/?error=no_discord_id&message=No+Discord+account+to+link+with`);
-  }
-  
-  if (!code) {
-    debugLog('ROBLOX-CALLBACK', 'No authorization code provided');
-    return res.redirect(`${CLIENT_URL}/?error=no_code&message=No+authorization+code+received+from+Roblox`);
+  if (!code || !state) {
+    debugLog('GITHUB-CALLBACK', 'Missing code or state');
+    return res.redirect(`${CLIENT_URL}/?error=missing_params&message=Missing+required+parameters`);
   }
   
   try {
-    // Exchange code for token
-    debugLog('ROBLOX-CALLBACK', 'Exchanging code for token');
+    // Validate and decrypt the state parameter
+    const [stateData, signature] = state.split('.');
     
-    const tokenResponse = await axios.post('https://apis.roblox.com/oauth/v1/token', 
-      new URLSearchParams({
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': `${API_URL}/api/auth/roblox/callback`
-      }).toString(),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${ROBLOX_CLIENT_ID}:${ROBLOX_CLIENT_SECRET}`).toString('base64')}`
-        }
-      }
-    );
-    
-    const tokenData = tokenResponse.data;
-    debugLog('ROBLOX-CALLBACK', 'Received token from Roblox');
-    
-    // Get user info
-    debugLog('ROBLOX-CALLBACK', 'Fetching user info');
-    const userInfoResponse = await axios.get('https://apis.roblox.com/oauth/v1/userinfo', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`
-      }
-    });
-    
-    const userInfo = userInfoResponse.data;
-    debugLog('ROBLOX-CALLBACK', 'Received user info', {
-      sub: userInfo.sub
-    });
-    
-    // Get username
-    const headers = {};
-    if (ROBLOX_API_KEY) {
-      headers['x-api-key'] = ROBLOX_API_KEY;
+    if (!stateData || !signature) {
+      debugLog('GITHUB-CALLBACK', 'Invalid state format');
+      return res.redirect(`${CLIENT_URL}/?error=invalid_state&message=Invalid+state+format`);
     }
     
-    debugLog('ROBLOX-CALLBACK', 'Fetching Roblox username');
-    const usernameResponse = await axios.get(`https://users.roblox.com/v1/users/${userInfo.sub}`, { headers });
+    const expectedSignature = generateHmac(stateData, JWT_SECRET);
+    if (signature !== expectedSignature) {
+      debugLog('GITHUB-CALLBACK', 'State signature mismatch');
+      return res.redirect(`${CLIENT_URL}/?error=invalid_signature&message=State+validation+failed`);
+    }
     
-    const robloxUsername = usernameResponse.data.name;
-    debugLog('ROBLOX-CALLBACK', 'Received Roblox username', {
-      username: robloxUsername
+    // Decode the user info from state
+    const userInfo = JSON.parse(Buffer.from(stateData, 'base64').toString());
+    const { discord_id, username } = userInfo;
+    
+    debugLog('GITHUB-CALLBACK', 'State validated successfully', { discord_id, username });
+    
+    // Check if the state is too old (1 hour max)
+    const stateAge = Date.now() - userInfo.timestamp;
+    if (stateAge > 60 * 60 * 1000) {
+      debugLog('GITHUB-CALLBACK', 'State expired');
+      return res.redirect(`${CLIENT_URL}/?error=state_expired&message=Authentication+request+expired`);
+    }
+    
+    // Exchange code for token
+    const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
+      client_id: GITHUB_CLIENT_ID,
+      client_secret: GITHUB_CLIENT_SECRET,
+      code,
+      redirect_uri: `${API_URL}/api/auth/github-callback`
+    }, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    const accessToken = tokenResponse.data.access_token;
+    if (!accessToken) {
+      throw new Error('Failed to obtain GitHub access token');
+    }
+    
+    // Get user data from GitHub
+    const githubUserResponse = await axios.get('https://api.github.com/user', {
+      headers: {
+        'Authorization': `token ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
+    
+    const githubUserData = githubUserResponse.data;
+    const githubUsername = githubUserData.login;
+    
+    debugLog('GITHUB-CALLBACK', 'GitHub profile fetched', {
+      username: githubUsername
     });
     
     // Update user in database if available
-    let user = null;
     try {
       if (typeof User.findOneAndUpdate === 'function') {
-        user = await User.findOneAndUpdate(
-          { discord_id: discordId },
+        await User.findOneAndUpdate(
+          { discord_id },
           {
             $set: {
-              roblox_id: userInfo.sub,
-              roblox_username: robloxUsername
+              github_id: githubUserData.id,
+              github_username: githubUsername,
+              github_avatar: githubUserData.avatar_url,
+              github_name: githubUserData.name
             }
           },
-          { upsert: false, new: true }
+          { upsert: true, new: true }
         );
         
-        debugLog('ROBLOX-CALLBACK', 'Updated user in database');
+        debugLog('GITHUB-CALLBACK', 'Updated user in database');
       }
     } catch (dbErr) {
-      debugLog('ROBLOX-CALLBACK', 'Database error:', dbErr.message);
+      debugLog('GITHUB-CALLBACK', 'Database error:', dbErr.message);
     }
     
-    // If database failed, create a user object manually
-    if (!user) {
-      user = req.session.user || {
-        discord_id: discordId,
-        discord_username: 'Discord User',
-        roblox_id: userInfo.sub,
-        roblox_username: robloxUsername,
-        is_admin: false
-      };
-    } else {
-      // Ensure discord_id is correct
-      if (user.discord_id !== discordId) {
-        debugLog('ID-FIX', 'Fixing discord_id mismatch in Roblox flow');
-        user.discord_id = discordId;
-      }
-      
-      // Ensure username exists
-      if (!user.discord_username) {
-        user.discord_username = 'Discord User';
-        debugLog('USERNAME-FIX', 'Added missing discord_username in Roblox flow');
-      }
-    }
-    
-    // Update session
-    if (req.session) {
-      req.session.user = {
-        discord_id: discordId,
-        discord_username: user.discord_username || 'Discord User',
-        roblox_username: robloxUsername,
-        roblox_id: userInfo.sub,
-        is_admin: user.is_admin || false
-      };
-      
-      delete req.session.robloxState;
-      delete req.session.pendingRobloxLink;
-      
-      debugLog('ROBLOX-CALLBACK', 'Updated session with Roblox data');
-    }
-    
-    // Generate new token with Roblox data
+    // Generate new token with GitHub data
     const token = jwt.sign(
       {
-        id: discordId,
-        username: user.discord_username || 'Discord User',
-        roblox: robloxUsername,
-        is_admin: user.is_admin || false
+        id: discord_id,
+        username: username,
+        github: githubUsername,
+        is_admin: false
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
     );
     
-    // Set new cookie
-    res.cookie('skyrden_auth', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-    
-    debugLog('ROBLOX-CALLBACK', 'Roblox linking successful, redirecting to client');
+    debugLog('GITHUB-CALLBACK', 'GitHub linking successful, redirecting to client');
     
     // Redirect back to client
-    return res.redirect(`${CLIENT_URL}/?roblox_linked=true&username=${encodeURIComponent(robloxUsername)}&token=${token}`);
+    return res.redirect(`${CLIENT_URL}/?github_linked=true&username=${encodeURIComponent(githubUsername)}&token=${token}`);
   } catch (error) {
-    debugLog('ROBLOX-ERROR', 'Error in Roblox callback:', error.message);
-    return res.redirect(`${CLIENT_URL}/?error=roblox_error&message=${encodeURIComponent(error.message)}`);
+    debugLog('GITHUB-ERROR', 'Error in GitHub callback:', error.message);
+    return res.redirect(`${CLIENT_URL}/?error=github_error&message=${encodeURIComponent(error.message)}`);
   }
 });
 
@@ -642,8 +494,8 @@ router.get('/env-check', (req, res) => {
     CLIENT_URL: process.env.CLIENT_URL || 'not set',
     DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID ? 'set' : 'not set',
     DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET ? 'set' : 'not set',
-    ROBLOX_CLIENT_ID: process.env.ROBLOX_CLIENT_ID ? 'set' : 'not set',
-    ROBLOX_CLIENT_SECRET: process.env.ROBLOX_CLIENT_SECRET ? 'set' : 'not set',
+    GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? 'set' : 'not set',
+    GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? 'set' : 'not set',
     NODE_ENV: process.env.NODE_ENV || 'not set'
   });
 });
@@ -657,7 +509,7 @@ router.get('/debug-auth', (req, res) => {
       user: req.session.user ? {
         discord_id: req.session.user.discord_id,
         discord_username: req.session.user.discord_username,
-        roblox_username: req.session.user.roblox_username
+        github_username: req.session.user.github_username
       } : null
     } : null,
     passport: {

@@ -2,8 +2,10 @@
 :root {
   --primary-color: #5865F2;
   --secondary-color: #2D3142;
+  --accent-color: #0366d6;
   --success-color: #43B581;
   --error-color: #F04747;
+  --warning-color: #FAA61A;
   --text-color: #333;
   --light-bg: #f5f5f5;
   --dark-bg: #2c2f33;
@@ -42,7 +44,11 @@ button {
   padding: 0.5rem 1rem;
   font-size: 1rem;
   font-weight: 500;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+button:hover {
+  transform: translateY(-2px);
 }
 
 /* Header */
@@ -63,6 +69,7 @@ button {
 .header-logo h1 {
   margin: 0;
   font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .header-nav {
@@ -105,6 +112,21 @@ button {
 
 .discord-login-btn:hover {
   background-color: #4752c4;
+}
+
+.github-connect-btn {
+  background-color: #2ea44f;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.github-connect-btn:hover {
+  background-color: #2c974b;
 }
 
 .logout-btn {
@@ -178,27 +200,27 @@ button {
   color: #666;
 }
 
-.roblox-connect {
+.github-connect {
   margin-top: 1rem;
 }
 
-.roblox-connect-btn {
-  background-color: #00A2FF;
+.apply-btn {
+  display: inline-block;
+  background-color: var(--accent-color);
   color: white;
-  border: none;
   padding: 0.75rem 1.5rem;
   border-radius: var(--border-radius);
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  margin-top: 1rem;
+  transition: background-color 0.2s, transform 0.1s;
 }
 
-.roblox-connect-btn:hover {
-  background-color: #0082cc;
+.apply-btn:hover {
+  background-color: #0258b8;
+  transform: translateY(-2px);
 }
 
 .account-connected {
-  padding: 1rem;
+  padding: 1.5rem;
   background-color: #f0f9ff;
   border: 1px solid #bde0fe;
   border-radius: var(--border-radius);
@@ -228,6 +250,112 @@ button {
   transform: translateY(-5px);
 }
 
+/* Positions section */
+.positions {
+  padding: 2rem 0;
+}
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.position-card {
+  padding: 1.5rem;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  display: flex;
+  flex-direction: column;
+}
+
+.position-card h3 {
+  margin-bottom: 0.75rem;
+  color: var(--secondary-color);
+}
+
+.position-card p {
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.view-position-btn {
+  display: inline-block;
+  background-color: var(--accent-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  text-align: center;
+  transition: background-color 0.2s, transform 0.1s;
+  align-self: flex-start;
+}
+
+.view-position-btn:hover {
+  background-color: #0258b8;
+  transform: translateY(-2px);
+}
+
+/* Application form */
+.application-form {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.application-form h1 {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.user-profile-summary {
+  background-color: #f0f9ff;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+}
+
+.submit-btn {
+  background-color: var(--accent-color);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.2s, transform 0.1s;
+  display: block;
+  margin: 2rem auto 0;
+}
+
+.submit-btn:hover {
+  background-color: #0258b8;
+  transform: translateY(-2px);
+}
+
 /* Dashboard */
 .dashboard {
   max-width: 1000px;
@@ -242,11 +370,72 @@ button {
   box-shadow: var(--box-shadow);
 }
 
-.dashboard-stats {
+.dashboard-status {
   background-color: white;
   padding: 2rem;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
+  margin-bottom: 2rem;
+}
+
+.status-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: var(--border-radius);
+  margin: 1rem 0;
+}
+
+.status-label {
+  font-weight: 500;
+}
+
+.status-value {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.pending {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.approved {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.rejected {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.status-note {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 1rem;
+}
+
+.dashboard-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.dashboard-link {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.dashboard-link:hover {
+  background-color: #4752c4;
+  transform: translateY(-2px);
 }
 
 /* Profile */
@@ -323,7 +512,7 @@ button {
 }
 
 /* Not logged in message */
-.not-logged-in {
+.not-logged-in, .not-complete {
   text-align: center;
   padding: 2rem;
   background-color: #f8f9fa;
@@ -332,11 +521,11 @@ button {
   max-width: 600px;
 }
 
-.not-logged-in h2 {
+.not-logged-in h2, .not-complete h2 {
   margin-bottom: 1rem;
 }
 
-.not-logged-in a {
+.not-logged-in a, .not-complete a {
   display: inline-block;
   margin-top: 1rem;
   padding: 0.5rem 1rem;
@@ -345,8 +534,8 @@ button {
   border-radius: var(--border-radius);
 }
 
-/* Alternative connection panel */
-.alt-connection-panel {
+/* Connection reminder */
+.connection-reminder {
   background-color: #fff3cd;
   border: 1px solid #ffeeba;
   padding: 1rem 2rem;
@@ -355,128 +544,4 @@ button {
   text-align: center;
 }
 
-.alt-connect-btn {
-  background-color: #ffaa00;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-  margin-top: 0.5rem;
-}
 
-.alt-connect-btn:hover {
-  background-color: #cc8800;
-}
-
-/* Debug panel */
-.debug-panel {
-  margin: 1rem 2rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: var(--border-radius);
-}
-
-.debug-panel summary {
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.debug-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 1rem 0;
-}
-
-.debug-controls button {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.user-data {
-  background-color: #212529;
-  color: #f8f9fa;
-  padding: 1rem;
-  border-radius: 4px;
-  overflow: auto;
-  max-height: 300px;
-}
-
-.user-data pre {
-  margin: 0;
-}
-
-/* Loading component */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-}
-
-.loading-spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  border-top: 4px solid var(--primary-color);
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-.force-load-btn {
-  margin-top: 20px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius);
-  cursor: pointer;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Footer */
-.app-footer {
-  padding: 1rem 2rem;
-  background-color: var(--dark-bg);
-  color: white;
-  text-align: center;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .app-header {
-    flex-direction: column;
-    padding: 1rem;
-  }
-  
-  .header-logo, .header-nav, .header-auth {
-    margin-bottom: 1rem;
-  }
-  
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .detail-row {
-    flex-direction: column;
-  }
-  
-  .detail-label {
-    margin-bottom: 0.25rem;
-  }
-}
