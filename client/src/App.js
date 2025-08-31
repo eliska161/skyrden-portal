@@ -161,42 +161,61 @@ function App() {
 
   // Check for auth in URL parameters on initial load
   useEffect(() => {
-    // Check for Discord auth success
-    const urlParams = new URLSearchParams(window.location.search);
+    const checkAuth = async () => {
+      try {
+        console.log('Running auth check');
+        
+        // Check for Discord auth success
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.get('auth') === 'success') {
+          console.log('Auth success detected in URL');
+          await handleDiscordAuthSuccess();
+          return;
+        }
+
+        // Check for Roblox linking success
+        if (urlParams.get('roblox_linked') === 'true') {
+          const username = urlParams.get('username');
+          console.log('Roblox linking success detected in URL', { username });
+          handleRobloxLinkSuccess(username);
+          return;
+        }
+
+        // Check for errors
+        const errorParam = urlParams.get('error');
+        if (errorParam) {
+          const errorMessage = urlParams.get('message') || `Error: ${errorParam}`;
+          console.error('Auth error detected in URL:', errorParam, errorMessage);
+          setError(errorMessage);
+          
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        // Load user from local storage or API
+        await loadUser();
+      } catch (e) {
+        console.error('Error during auth check:', e);
+        
+        // Fallback to localStorage
+        const localUser = localStorage.getItem('skyrden_fallback_user');
+        if (localUser) {
+          setUser(JSON.parse(localUser));
+          console.log('Set user from localStorage fallback');
+        }
+        
+        // Always make sure loading is false
+        setLoading(false);
+      }
+    };
     
-    if (urlParams.get('auth') === 'success') {
-      console.log('Auth success detected in URL');
-      handleDiscordAuthSuccess();
-      return;
-    }
-
-    // Check for Roblox linking success
-    if (urlParams.get('roblox_linked') === 'true') {
-      const username = urlParams.get('username');
-      console.log('Roblox linking success detected in URL', { username });
-      handleRobloxLinkSuccess(username);
-      return;
-    }
-
-    // Check for errors
-    const errorParam = urlParams.get('error');
-    if (errorParam) {
-      const errorMessage = urlParams.get('message') || `Error: ${errorParam}`;
-      console.error('Auth error detected in URL:', errorParam, errorMessage);
-      setError(errorMessage);
-      
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    // Load user from local storage or API
-    loadUser();
+    checkAuth();
   }, []);
 
   // Load user from local storage or API
   const loadUser = async () => {
     console.log('Loading user...');
-    setLoading(true);
     
     try {
       // Try to restore from localStorage first (for faster rendering)
@@ -243,6 +262,7 @@ function App() {
       console.error('Error loading user:', error);
       // Keep using localStorage user if API fails
     } finally {
+      // ALWAYS set loading to false after load attempt
       setLoading(false);
     }
   };
@@ -367,6 +387,9 @@ function App() {
       }
     }
     
+    // CRITICAL: Always set loading to false
+    setLoading(false);
+    
     // Clean the URL
     window.history.replaceState({}, document.title, window.location.pathname);
   };
@@ -390,6 +413,9 @@ function App() {
     
     setMessage(`Successfully linked Roblox account: ${robloxUsername}`);
     setTimeout(() => setMessage(''), 5000);
+    
+    // CRITICAL: Always set loading to false
+    setLoading(false);
     
     // Clean the URL
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -497,13 +523,39 @@ function App() {
     }, 5000);
   };
 
+  // Debug: Force loading to false
+  const forceLoadingFalse = () => {
+    setLoading(false);
+    setMessage('Forced loading state to false');
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  console.log('Rendering App with loading:', loading);
+
   // Render loading state
   if (loading) {
-    console.log('Rendering App with loading: true');
-    return <Loading />;
+    // Add a special timeout to prevent infinite loading
+    useEffect(() => {
+      const timeoutId = setTimeout(() => {
+        if (loading) {
+          console.log('Loading timeout triggered - forcing to false');
+          setLoading(false);
+        }
+      }, 5000); // 5 second timeout
+      
+      return () => clearTimeout(timeoutId);
+    }, [loading]);
+    
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading...</p>
+        <button onClick={forceLoadingFalse} style={{ marginTop: '20px' }}>
+          Not Loading? Click Here
+        </button>
+      </div>
+    );
   }
-
-  console.log('Rendering App with loading: false user:', user);
 
   return (
     <Router>
@@ -583,29 +635,28 @@ function App() {
         )}
         
         {/* Debug Panel */}
-        {process.env.NODE_ENV !== 'production' && (
-          <details className="debug-panel">
-            <summary>Debug Options</summary>
-            <div className="debug-controls">
-              <button onClick={debugCookies}>Show Cookies</button>
-              <button onClick={manualTokenLogin}>Manual Token Login</button>
-              <button onClick={loadUser}>Refresh User</button>
-              <button onClick={() => {
-                const username = prompt('Enter custom username:', user?.discord_username || '');
-                if (username && user) {
-                  const updatedUser = {...user, discord_username: username};
-                  setUser(updatedUser);
-                  localStorage.setItem('skyrden_fallback_user', JSON.stringify(updatedUser));
-                  setMessage(`Username changed to ${username}`);
-                  setTimeout(() => setMessage(''), 3000);
-                }
-              }}>Change Username</button>
-            </div>
-            <div className="user-data">
-              <pre>{JSON.stringify(user, null, 2)}</pre>
-            </div>
-          </details>
-        )}
+        <details className="debug-panel">
+          <summary>Debug Options</summary>
+          <div className="debug-controls">
+            <button onClick={debugCookies}>Show Cookies</button>
+            <button onClick={manualTokenLogin}>Manual Token Login</button>
+            <button onClick={loadUser}>Refresh User</button>
+            <button onClick={forceLoadingFalse}>Force Loading Off</button>
+            <button onClick={() => {
+              const username = prompt('Enter custom username:', user?.discord_username || '');
+              if (username && user) {
+                const updatedUser = {...user, discord_username: username};
+                setUser(updatedUser);
+                localStorage.setItem('skyrden_fallback_user', JSON.stringify(updatedUser));
+                setMessage(`Username changed to ${username}`);
+                setTimeout(() => setMessage(''), 3000);
+              }
+            }}>Change Username</button>
+          </div>
+          <div className="user-data">
+            <pre>{JSON.stringify(user, null, 2)}</pre>
+          </div>
+        </details>
 
         {/* Footer */}
         <footer className="app-footer">
