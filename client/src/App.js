@@ -575,7 +575,7 @@ useEffect(() => {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/applications" element={<ApplicationPortal />} />
         <Route path="/my-applications" element={<MyApplications />} />
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
