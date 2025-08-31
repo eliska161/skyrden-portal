@@ -11,18 +11,38 @@
   --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+* {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: var(--text-color);
   background-color: var(--light-bg);
+  line-height: 1.6;
 }
 
 .app-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: var(--primary-color);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
 }
 
 /* Header */
@@ -87,6 +107,15 @@ body {
   background-color: #4752c4;
 }
 
+.logout-btn {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.logout-btn:hover {
+  background-color: #e0e0e0;
+}
+
 /* Message containers */
 .message-container {
   margin: 1rem 2rem;
@@ -119,44 +148,14 @@ body {
 .app-content {
   flex: 1;
   padding: 2rem;
-}
-
-/* Footer */
-.app-footer {
-  padding: 1rem 2rem;
-  background-color: var(--dark-bg);
-  color: white;
-  text-align: center;
-}
-
-/* Loading component */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-}
-
-.loading-spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-  border-top: 4px solid var(--primary-color);
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* Landing page */
 .landing-page {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .hero {
@@ -261,6 +260,7 @@ body {
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   overflow: hidden;
+  margin-top: 2rem;
 }
 
 .profile-header {
@@ -320,6 +320,29 @@ body {
 
 .not-found a:hover {
   background-color: #4752c4;
+}
+
+/* Not logged in message */
+.not-logged-in {
+  text-align: center;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: var(--border-radius);
+  margin: 2rem auto;
+  max-width: 600px;
+}
+
+.not-logged-in h2 {
+  margin-bottom: 1rem;
+}
+
+.not-logged-in a {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--border-radius);
 }
 
 /* Alternative connection panel */
@@ -390,6 +413,48 @@ body {
 
 .user-data pre {
   margin: 0;
+}
+
+/* Loading component */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid var(--primary-color);
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.force-load-btn {
+  margin-top: 20px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Footer */
+.app-footer {
+  padding: 1rem 2rem;
+  background-color: var(--dark-bg);
+  color: white;
+  text-align: center;
 }
 
 /* Responsive design */

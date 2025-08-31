@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 
 // Configuration
 const config = {
-  API_URL: process.env.REACT_APP_API_URL || 'http://skd-portal.up.railway.app',
-  DISCORD_CLIENT_ID: process.env.REACT_APP_DISCORD_CLIENT_ID || '1408435014613602355'
+  API_URL: process.env.REACT_APP_API_URL || 'http://skd-portal.up.railway.app'
 };
 
 // Simple Loading Component
-const Loading = () => (
+const Loading = ({ onForceLoad }) => (
   <div className="loading-container">
     <div className="loading-spinner"></div>
     <p>Loading...</p>
+    <button 
+      onClick={onForceLoad} 
+      className="force-load-btn"
+    >
+      Click here if loading takes too long
+    </button>
   </div>
 );
 
@@ -70,7 +75,12 @@ const LandingPage = ({ user, loginWithDiscord, connectRoblox }) => {
 // Dashboard Component
 const Dashboard = ({ user }) => {
   if (!user) {
-    return <Navigate to="/" />;
+    return (
+      <div className="not-logged-in">
+        <h2>Please log in to view your dashboard</h2>
+        <Link to="/">Return to Home</Link>
+      </div>
+    );
   }
 
   return (
@@ -96,7 +106,12 @@ const Dashboard = ({ user }) => {
 // Profile Component
 const Profile = ({ user }) => {
   if (!user) {
-    return <Navigate to="/" />;
+    return (
+      <div className="not-logged-in">
+        <h2>Please log in to view your profile</h2>
+        <Link to="/">Return to Home</Link>
+      </div>
+    );
   }
 
   return (
@@ -139,16 +154,8 @@ const NotFound = () => (
   </div>
 );
 
-// Helper component for redirects
-function Navigate({ to }) {
-  const navigate = useNavigate();
-  useEffect(() => {
-    navigate(to);
-  }, [navigate, to]);
-  return null;
-}
-
 function App() {
+  // State variables
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -159,316 +166,192 @@ function App() {
     console.log('User state changed:', user);
   }, [user]);
 
-  // Check for auth in URL parameters on initial load
+  // Force loading to false
+  const forceLoadingFalse = () => {
+    setLoading(false);
+    setMessage('Loading skipped. Using local data if available.');
+    setTimeout(() => setMessage(''), 5000);
+  };
+
+  // Set up auto-timeout for loading
   useEffect(() => {
-    const checkAuth = async () => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log('Auto-timeout: Setting loading to false after delay');
+        setLoading(false);
+      }
+    }, 5000); // 5 seconds max loading time
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Initialize the app - check auth and load user
+  useEffect(() => {
+    const initializeApp = async () => {
       try {
-        console.log('Running auth check');
+        console.log('Initializing app...');
         
-        // Check for Discord auth success
+        // Check URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         
+        // Handle Discord auth success
         if (urlParams.get('auth') === 'success') {
-          console.log('Auth success detected in URL');
-          await handleDiscordAuthSuccess();
-          return;
-        }
-
-        // Check for Roblox linking success
-        if (urlParams.get('roblox_linked') === 'true') {
-          const username = urlParams.get('username');
-          console.log('Roblox linking success detected in URL', { username });
-          handleRobloxLinkSuccess(username);
-          return;
-        }
-
-        // Check for errors
-        const errorParam = urlParams.get('error');
-        if (errorParam) {
-          const errorMessage = urlParams.get('message') || `Error: ${errorParam}`;
-          console.error('Auth error detected in URL:', errorParam, errorMessage);
-          setError(errorMessage);
+          const token = urlParams.get('token');
+          const discordId = urlParams.get('id');
+          const username = urlParams.get('username') || 'Discord User';
+          
+          console.log('Auth success detected in URL parameters');
+          
+          // Create temp user from URL params
+          const tempUser = {
+            discord_id: discordId,
+            discord_username: decodeURIComponent(username),
+            roblox_username: null,
+            is_admin: false
+          };
+          
+          setUser(tempUser);
+          localStorage.setItem('skyrden_user', JSON.stringify(tempUser));
+          setMessage('Successfully logged in with Discord!');
           
           // Clean URL
           window.history.replaceState({}, document.title, window.location.pathname);
+          setLoading(false);
+          return;
+        }
+        
+        // Handle Roblox linking success
+        if (urlParams.get('roblox_linked') === 'true') {
+          const username = urlParams.get('username');
+          const storedUser = localStorage.getItem('skyrden_user');
+          
+          console.log('Roblox linking detected in URL parameters');
+          
+          if (storedUser && username) {
+            const parsedUser = JSON.parse(storedUser);
+            const updatedUser = {
+              ...parsedUser,
+              roblox_username: decodeURIComponent(username)
+            };
+            
+            setUser(updatedUser);
+            localStorage.setItem('skyrden_user', JSON.stringify(updatedUser));
+            setMessage(`Successfully connected Roblox account: ${username}`);
+          }
+          
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setLoading(false);
+          return;
         }
 
-        // Load user from local storage or API
-        await loadUser();
-      } catch (e) {
-        console.error('Error during auth check:', e);
-        
-        // Fallback to localStorage
-        const localUser = localStorage.getItem('skyrden_fallback_user');
-        if (localUser) {
-          setUser(JSON.parse(localUser));
-          console.log('Set user from localStorage fallback');
+        // Check for errors in URL
+        if (urlParams.get('error')) {
+          const errorMsg = urlParams.get('message') || `Error: ${urlParams.get('error')}`;
+          setError(errorMsg);
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
         
-        // Always make sure loading is false
+        // Try to restore from localStorage
+        const storedUser = localStorage.getItem('skyrden_user');
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            console.log('Restored user from localStorage', parsedUser);
+            setUser(parsedUser);
+          } catch (e) {
+            console.error('Error parsing stored user', e);
+            localStorage.removeItem('skyrden_user');
+          }
+        }
+          
+        // Try to validate with API
+        try {
+          const response = await fetch(`${config.API_URL}/api/auth/status`, {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('API auth status response:', data);
+            
+            if (data.authenticated && data.user) {
+              console.log('User authenticated with API', data.user);
+              setUser(data.user);
+              localStorage.setItem('skyrden_user', JSON.stringify(data.user));
+            }
+          } else {
+            console.log('API returned status', response.status);
+          }
+        } catch (apiError) {
+          console.error('API check failed', apiError);
+          // Continue with localStorage user if available
+        }
+
+        // Finished initialization
+        setLoading(false);
+      } catch (e) {
+        console.error('Error during app initialization', e);
+        setError('An error occurred while loading the application.');
         setLoading(false);
       }
     };
     
-    checkAuth();
+    initializeApp();
   }, []);
-
-  // Load user from local storage or API
-  const loadUser = async () => {
-    console.log('Loading user...');
-    
-    try {
-      // Try to restore from localStorage first (for faster rendering)
-      const localUser = localStorage.getItem('skyrden_fallback_user');
-      if (localUser) {
-        const parsedUser = JSON.parse(localUser);
-        console.log('Found user in localStorage:', parsedUser);
-        setUser(parsedUser);
-      }
-      
-      // Then try to get fresh data from API
-      console.log('Checking auth status with API...');
-      const response = await fetch(`${config.API_URL}/api/auth/status`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('API auth status response:', data);
-        
-        if (data.authenticated && data.user) {
-          console.log('Setting user from API:', data.user);
-          setUser(data.user);
-          
-          // Save to localStorage for fast loading next time
-          localStorage.setItem('skyrden_fallback_user', JSON.stringify(data.user));
-        } else if (localUser) {
-          console.log('API says not authenticated, but we have a local user');
-          // Try token login if we have a stored user
-          attemptTokenLogin();
-        } else {
-          console.log('User not authenticated');
-          setUser(null);
-        }
-      } else {
-        console.error('API error checking auth status:', response.status);
-        // Keep using localStorage user if API fails
-      }
-    } catch (error) {
-      console.error('Error loading user:', error);
-      // Keep using localStorage user if API fails
-    } finally {
-      // ALWAYS set loading to false after load attempt
-      setLoading(false);
-    }
-  };
   
-  // Try to login using stored token or user ID
-  const attemptTokenLogin = async () => {
-    console.log('Attempting token login...');
-    
-    // Try to extract token from cookie
-    let token = null;
-    try {
-      const tokenMatch = document.cookie.match(/skyrden_auth=([^;]+)/);
-      if (tokenMatch) {
-        token = tokenMatch[1];
-        console.log('Found token in cookie');
-      }
-    } catch (e) {
-      console.error('Error reading cookie:', e);
-    }
-    
-    // If no token in cookie, check localStorage for user ID
-    if (!token) {
-      const localUser = localStorage.getItem('skyrden_fallback_user');
-      if (!localUser) return;
-      
-      const parsedUser = JSON.parse(localUser);
-      if (!parsedUser.discord_id) return;
-      
-      // Generate a token for the stored user
-      token = btoa(JSON.stringify({
-        id: parsedUser.discord_id,
-        username: parsedUser.discord_username || 'Discord User'
-      }));
-      
-      console.log('Generated token from stored user ID');
-    }
-    
-    if (!token) return;
-    
-    try {
-      const response = await fetch(`${config.API_URL}/api/auth/token-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ token })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Token login response:', data);
-        
-        if (data.authenticated && data.user) {
-          console.log('Setting user from token login:', data.user);
-          setUser(data.user);
-          
-          // Save to localStorage
-          localStorage.setItem('skyrden_fallback_user', JSON.stringify(data.user));
-          return true;
-        }
-      }
-    } catch (error) {
-      console.error('Token login error:', error);
-    }
-    
-    return false;
-  };
-
-  // Handle Discord authentication success
-  const handleDiscordAuthSuccess = async () => {
-    console.log('Handling Discord auth success');
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const discordId = urlParams.get('id');
-    const username = urlParams.get('username') || 'Discord User';
-    
-    // Generate a temporary user until we verify with the backend
-    const tempUser = {
-      discord_id: discordId || 'discord_' + Date.now(),
-      discord_username: decodeURIComponent(username),
-      roblox_username: null,
-      is_admin: false
-    };
-    
-    // Set the temporary user immediately for better UX
-    setUser(tempUser);
-    setMessage('Successfully connected with Discord!');
-    setTimeout(() => setMessage(''), 5000);
-    
-    // Store fallback user in case of refresh
-    localStorage.setItem('skyrden_fallback_user', JSON.stringify(tempUser));
-    
-    // If we have a token, use it to login with the backend
-    if (token) {
-      try {
-        const response = await fetch(`${config.API_URL}/api/auth/token-login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify({ token })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Token login response:', data);
-          
-          if (data.authenticated && data.user) {
-            console.log('Setting user from token login:', data.user);
-            setUser(data.user);
-            
-            // Save to localStorage
-            localStorage.setItem('skyrden_fallback_user', JSON.stringify(data.user));
-          }
-        } else {
-          console.error('Token login failed:', response.status);
-        }
-      } catch (error) {
-        console.error('Token login error:', error);
-      }
-    }
-    
-    // CRITICAL: Always set loading to false
-    setLoading(false);
-    
-    // Clean the URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-  };
-
-  // Handle Roblox linking success
-  const handleRobloxLinkSuccess = (robloxUsername) => {
-    console.log('Handling Roblox linking success', { robloxUsername });
-    
-    // Update user state with Roblox username
-    if (user) {
-      const updatedUser = {
-        ...user,
-        roblox_username: robloxUsername
-      };
-      
-      setUser(updatedUser);
-      
-      // Update localStorage
-      localStorage.setItem('skyrden_fallback_user', JSON.stringify(updatedUser));
-    }
-    
-    setMessage(`Successfully linked Roblox account: ${robloxUsername}`);
-    setTimeout(() => setMessage(''), 5000);
-    
-    // CRITICAL: Always set loading to false
-    setLoading(false);
-    
-    // Clean the URL
-    window.history.replaceState({}, document.title, window.location.pathname);
-  };
-
   // Login with Discord
   const loginWithDiscord = () => {
     console.log('Redirecting to Discord auth...');
     window.location.href = `${config.API_URL}/api/auth/discord`;
   };
-
+  
   // Connect Roblox account
   const connectRoblox = () => {
-    console.log('Redirecting to Roblox auth...');
-    window.location.href = `${config.API_URL}/api/auth/roblox`;
+    if (!user) {
+      setError('Please log in with Discord first');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    
+    console.log('Connecting Roblox account...');
+    window.location.href = `${config.API_URL}/api/auth/direct-roblox-link?discord_id=${user.discord_id}&username=${encodeURIComponent(user.discord_username || 'Discord User')}`;
   };
   
   // Alternative Roblox connection method
   const connectRobloxAlternative = () => {
-    console.log('Using alternative Roblox connection method...');
-    
     if (!user || !user.discord_id) {
       setError('No user logged in to link Roblox account');
       setTimeout(() => setError(''), 5000);
       return;
     }
     
+    console.log('Using alternative Roblox connection method...');
     window.location.href = `${config.API_URL}/api/auth/direct-roblox-link?discord_id=${user.discord_id}&username=${encodeURIComponent(user.discord_username || 'Discord User')}`;
   };
-
+  
   // Logout
-  const logout = async () => {
+  const logout = () => {
     console.log('Logging out...');
     
-    try {
-      await fetch(`${config.API_URL}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (error) {
-      console.error('Logout API error:', error);
-    }
-    
-    // Always clear local data regardless of API success
-    localStorage.removeItem('skyrden_fallback_user');
+    // Clear localStorage
+    localStorage.removeItem('skyrden_user');
     setUser(null);
     
-    // Try to clear cookies manually as well
-    document.cookie = 'skyrden_auth=; Max-Age=0; path=/; domain=skd-portal.up.railway.app; secure; samesite=none';
+    // Try API logout
+    fetch(`${config.API_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    }).catch(err => {
+      console.error('Logout API error:', err);
+    });
     
-    console.log('Logout complete');
+    setMessage('Logged out successfully');
+    setTimeout(() => setMessage(''), 3000);
   };
-  
+
   // Debug: Show active cookies
   const debugCookies = () => {
     const cookies = document.cookie.split(';').map(c => c.trim());
@@ -476,85 +359,35 @@ function App() {
     setMessage(`Cookies: ${cookies.join(', ') || 'None'}`);
     setTimeout(() => setMessage(''), 10000);
   };
-  
-  // Debug: Manual token login
-  const manualTokenLogin = async () => {
-    // Get current user data
-    if (!user || !user.discord_id) {
-      setError('No user data available for token login');
-      setTimeout(() => setError(''), 5000);
-      return;
-    }
-    
-    const token = btoa(JSON.stringify({
-      id: user.discord_id,
-      username: user.discord_username || 'Discord User'
-    }));
-    
-    try {
-      const response = await fetch(`${config.API_URL}/api/auth/token-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ token })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Manual token login response:', data);
-        
-        if (data.authenticated) {
-          setMessage('Manual token login successful');
-        } else {
-          setError('Manual token login failed');
-        }
-      } else {
-        setError(`Manual token login failed: ${response.status}`);
-      }
-    } catch (error) {
-      setError(`Manual token login error: ${error.message}`);
-    }
-    
-    setTimeout(() => {
-      setMessage('');
-      setError('');
-    }, 5000);
-  };
 
-  // Debug: Force loading to false
-  const forceLoadingFalse = () => {
-    setLoading(false);
-    setMessage('Forced loading state to false');
+  // Debug functions
+  const clearData = () => {
+    localStorage.removeItem('skyrden_user');
+    setUser(null);
+    setMessage('Local data cleared');
     setTimeout(() => setMessage(''), 3000);
   };
 
-  console.log('Rendering App with loading:', loading);
+  const updateUsername = () => {
+    if (!user) {
+      setError('No user logged in');
+      return;
+    }
+    
+    const newUsername = prompt('Enter new username:', user.discord_username);
+    if (newUsername) {
+      const updatedUser = {...user, discord_username: newUsername};
+      setUser(updatedUser);
+      localStorage.setItem('skyrden_user', JSON.stringify(updatedUser));
+      setMessage(`Username updated to ${newUsername}`);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
 
   // Render loading state
   if (loading) {
-    // Add a special timeout to prevent infinite loading
-    useEffect(() => {
-      const timeoutId = setTimeout(() => {
-        if (loading) {
-          console.log('Loading timeout triggered - forcing to false');
-          setLoading(false);
-        }
-      }, 5000); // 5 second timeout
-      
-      return () => clearTimeout(timeoutId);
-    }, [loading]);
-    
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading...</p>
-        <button onClick={forceLoadingFalse} style={{ marginTop: '20px' }}>
-          Not Loading? Click Here
-        </button>
-      </div>
-    );
+    console.log('Rendering loading state');
+    return <Loading onForceLoad={forceLoadingFalse} />;
   }
 
   return (
@@ -576,7 +409,7 @@ function App() {
             {user ? (
               <div className="user-menu">
                 <span>Welcome, {user.discord_username}</span>
-                <button onClick={logout}>Logout</button>
+                <button onClick={logout} className="logout-btn">Logout</button>
               </div>
             ) : (
               <button onClick={loginWithDiscord} className="discord-login-btn">
@@ -612,14 +445,8 @@ function App() {
               />
             } />
             
-            <Route path="/dashboard" element={
-              <Dashboard user={user} />
-            } />
-            
-            <Route path="/profile" element={
-              <Profile user={user} />
-            } />
-            
+            <Route path="/dashboard" element={<Dashboard user={user} />} />
+            <Route path="/profile" element={<Profile user={user} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
@@ -639,19 +466,9 @@ function App() {
           <summary>Debug Options</summary>
           <div className="debug-controls">
             <button onClick={debugCookies}>Show Cookies</button>
-            <button onClick={manualTokenLogin}>Manual Token Login</button>
-            <button onClick={loadUser}>Refresh User</button>
+            <button onClick={clearData}>Clear Local Data</button>
+            <button onClick={updateUsername}>Change Username</button>
             <button onClick={forceLoadingFalse}>Force Loading Off</button>
-            <button onClick={() => {
-              const username = prompt('Enter custom username:', user?.discord_username || '');
-              if (username && user) {
-                const updatedUser = {...user, discord_username: username};
-                setUser(updatedUser);
-                localStorage.setItem('skyrden_fallback_user', JSON.stringify(updatedUser));
-                setMessage(`Username changed to ${username}`);
-                setTimeout(() => setMessage(''), 3000);
-              }
-            }}>Change Username</button>
           </div>
           <div className="user-data">
             <pre>{JSON.stringify(user, null, 2)}</pre>
