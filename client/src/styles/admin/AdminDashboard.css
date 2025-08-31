@@ -1,0 +1,259 @@
+/* Admin Dashboard Styles */
+.admin-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.stat-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.stat-card h3 {
+  margin-top: 0;
+  color: #666;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+  color: #333;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.btn-primary, 
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s ease;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: #5865F2;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #4752C4;
+}
+
+.btn-secondary {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background-color: #d0d0d0;
+}
+
+.submissions-section,
+.applications-section {
+  margin-top: 3rem;
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.filter-group select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  min-width: 200px;
+}
+
+.submissions-table,
+.applications-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.submissions-table th,
+.applications-table th {
+  text-align: left;
+  padding: 1rem;
+  background-color: #f5f7ff;
+  border-bottom: 2px solid #ddd;
+  cursor: pointer;
+}
+
+.submissions-table td,
+.applications-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.sort-icon {
+  margin-left: 0.5rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.pending {
+  background-color: #FFC107;
+  color: #333;
+}
+
+.status-badge.approved {
+  background-color: #28A745;
+  color: white;
+}
+
+.status-badge.denied {
+  background-color: #DC3545;
+  color: white;
+}
+
+.status-badge.draft {
+  background-color: #6C757D;
+  color: white;
+}
+
+.status-badge.open {
+  background-color: #17A2B8;
+  color: white;
+}
+
+.status-badge.closed {
+  background-color: #343A40;
+  color: white;
+}
+
+.notification-pending {
+  font-size: 0.7rem;
+  background-color: #dc3545;
+  color: white;
+  padding: 0.1rem 0.3rem;
+  border-radius: 10px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.applicant-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.roblox-username {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+.btn-view {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  background-color: #5865F2;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.btn-view:hover {
+  background-color: #4752C4;
+}
+
+.btn-edit {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  background-color: #17A2B8;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.btn-edit:hover {
+  background-color: #138496;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.no-submissions {
+  padding: 2rem;
+  text-align: center;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.status-pending {
+  background-color: #fff8e6;
+}
+
+.status-approved {
+  background-color: #f0fff0;
+}
+
+.status-denied {
+  background-color: #fff0f0;
+}
+
+@media (max-width: 768px) {
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-actions {
+    flex-direction: column;
+  }
+  
+  .filter-controls {
+    flex-direction: column;
+  }
+  
+  .submissions-table,
+  .applications-table {
+    display: block;
+    overflow-x: auto;
+  }
+}

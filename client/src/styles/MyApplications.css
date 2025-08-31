@@ -1,0 +1,139 @@
+/* My Applications Page Styles */
+.my-applications-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.applications-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.applications-table th {
+  text-align: left;
+  padding: 1rem;
+  background-color: #f5f7ff;
+  border-bottom: 2px solid #ddd;
+}
+
+.applications-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.applications-table tr:last-child td {
+  border-bottom: none;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.pending {
+  background-color: #FFC107;
+  color: #333;
+}
+
+.status-badge.approved {
+  background-color: #28A745;
+  color: white;
+}
+
+.status-badge.denied {
+  background-color: #DC3545;
+  color: white;
+}
+
+.btn-view {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  background-color: #5865F2;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.btn-view:hover {
+  background-color: #4752C4;
+}
+
+.feedback-container {
+  background-color: #f9f9f9;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  border-radius: 4px;
+}
+
+.feedback-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.no-applications {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.no-applications .btn-primary {
+  display: inline-block;
+  margin-top: 1.5rem;
+  background-color: #5865F2;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.no-applications .btn-primary:hover {
+  background-color: #4752C4;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #5865F2;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.error-container {
+  text-align: center;
+  padding: 2rem;
+  background-color: #fff3f3;
+  border: 1px solid #ffcaca;
+  border-radius: 8px;
+  margin: 2rem auto;
+  max-width: 600px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .applications-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
