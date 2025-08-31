@@ -171,79 +171,70 @@ function App() {
 
     // Handle Discord auth success
     const handleDiscordAuthSuccess = () => {
-        // Generate a temporary user until we can get the real data
-        const tempUser = {
-            discord_id: 'temp_' + Date.now(),
-            discord_username: 'Loading...',
-            roblox_username: null,
-            is_admin: false
-        };
+  // Get token from URL if present
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  let username = 'Discord User';
+  
+  // Try to extract username from token
+  if (token) {
+    try {
+      // JWT tokens have 3 parts separated by dots
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        // The middle part contains the payload
+        const payload = JSON.parse(atob(tokenParts[1]));
+        if (payload.username) {
+          username = payload.username;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to decode token:', e);
+    }
+  }
+  
+  // Generate a temporary user until we can get the real data
+  const tempUser = {
+    discord_id: urlParams.get('id') || 'discord_' + Date.now(),
+    discord_username: username,
+    roblox_username: null,
+    is_admin: false
+  };
+  
+  // Set the temporary user immediately for better UX
+  setUser(tempUser);
+  
+  // Store fallback user in case of refresh
+  localStorage.setItem('skyrden_fallback_user', JSON.stringify(tempUser));
+  
+  // Try to get the real user data
+  (async () => {
+    try {
+      const response = await fetch(`${config.API_URL}/api/auth/status`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Auth check after Discord login:', data);
         
-        // Set the temporary user immediately for better UX
-        setUser(tempUser);
-        
-        // Try to get the real user data
-        (async () => {
-            try {
-                const response = await fetch(`${config.API_URL}/api/auth/status`, {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Auth check after Discord login:', data);
-                    
-                    if (data.authenticated && data.user) {
-                        console.log('Setting user from auth check:', data.user);
-                        setUser(data.user);
-                    } else {
-                        // If backend doesn't return a user, revert to a more complete temporary user
-                        console.log('No authenticated user found after Discord login, using fallback');
-                        const fallbackUser = {
-                            discord_id: 'discord_' + Date.now(),
-                            discord_username: 'Discord User',
-                            roblox_username: null,
-                            is_admin: false
-                        };
-                        setUser(fallbackUser);
-                        
-                        // Store fallback user in case of refresh
-                        localStorage.setItem('skyrden_fallback_user', JSON.stringify(fallbackUser));
-                    }
-                } else {
-                    console.log('Auth check failed after Discord login, using fallback');
-                    // Use more complete temporary user as fallback
-                    const fallbackUser = {
-                        discord_id: 'discord_' + Date.now(),
-                        discord_username: 'Discord User',
-                        roblox_username: null,
-                        is_admin: false
-                    };
-                    setUser(fallbackUser);
-                    
-                    // Store fallback user in case of refresh
-                    localStorage.setItem('skyrden_fallback_user', JSON.stringify(fallbackUser));
-                }
-            } catch (error) {
-                console.error('Failed to check auth status after Discord login:', error);
-                // Still use a fallback user to ensure UI flows can be tested
-                const fallbackUser = {
-                    discord_id: 'discord_' + Date.now(),
-                    discord_username: 'Discord User',
-                    roblox_username: null,
-                    is_admin: false
-                };
-                setUser(fallbackUser);
-                
-                // Store fallback user in case of refresh
-                localStorage.setItem('skyrden_fallback_user', JSON.stringify(fallbackUser));
-            }
-        })();
-    };
+        if (data.authenticated && data.user) {
+          console.log('Setting user from auth check:', data.user);
+          setUser(data.user);
+          
+          // Update stored fallback with real data
+          localStorage.setItem('skyrden_fallback_user', JSON.stringify(data.user));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check auth status after Discord login:', error);
+    }
+  })();
+};
 
     // Check URL parameters and initial auth
     useEffect(() => {

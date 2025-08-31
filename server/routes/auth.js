@@ -124,6 +124,7 @@ router.get('/discord/callback', (req, res, next) => {
         console.log('Auth success, redirecting with token');
         
         // Redirect back to client with token
+        return res.redirect(`${returnUrl}/?auth=success&token=${token}&id=${user.discord_id}`);
         const returnUrl = req.session.returnTo || CLIENT_URL;
         delete req.session.returnTo;
         
