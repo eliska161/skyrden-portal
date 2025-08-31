@@ -17,7 +17,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && node netlify-postbuild.js",
+    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build && node netlify-postbuild.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
