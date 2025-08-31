@@ -22,215 +22,52 @@ const Loading = ({ onForceLoad }) => (
 );
 
 // Landing Page Component
-const LandingPage = ({ user, loginWithDiscord, connectGitHub }) => {
+const LandingPage = ({ user, loginWithDiscord, connectRoblox }) => {
   console.log('Rendering LandingPage with user:', user);
   
   return (
     <div className="landing-page">
       <section className="hero">
-        <h1>Welcome to Skyrden Recruitment Portal</h1>
-        <p>Your gateway to applying for positions at Skyrden</p>
+        <h1>Welcome to Skyrden Portal</h1>
+        <p>Your gateway to the Skyrden gaming ecosystem</p>
         
         {!user ? (
           <button onClick={loginWithDiscord} className="discord-login-btn">
             Login with Discord
           </button>
-        ) : !user.github_username ? (
-          <div className="github-connect">
-            <p>Connect your GitHub account to complete your profile</p>
-            <button onClick={connectGitHub} className="github-connect-btn">
-              Connect GitHub Account
+        ) : !user.roblox_username ? (
+          <div className="roblox-connect">
+            <p>Connect your Roblox account to access all features</p>
+            <button onClick={connectRoblox} className="roblox-connect-btn">
+              Connect Roblox Account
             </button>
           </div>
         ) : (
           <div className="account-connected">
             <h3>Your accounts are connected!</h3>
             <p>Discord: <strong>{user.discord_username}</strong></p>
-            <p>GitHub: <strong>{user.github_username}</strong></p>
-            <Link to="/apply" className="apply-btn">Apply for Positions</Link>
+            <p>Roblox: <strong>{user.roblox_username}</strong></p>
           </div>
         )}
       </section>
       
       <section className="features">
-        <h2>Why Join Us</h2>
+        <h2>Features</h2>
         <div className="feature-grid">
           <div className="feature-card">
-            <h3>Innovative Projects</h3>
-            <p>Work on cutting-edge technology and creative solutions</p>
+            <h3>Cross-Platform Integration</h3>
+            <p>Connect your Discord and Roblox accounts for a seamless gaming experience</p>
           </div>
           <div className="feature-card">
-            <h3>Growth Opportunities</h3>
-            <p>Develop your skills with mentorship and professional development</p>
+            <h3>Game Statistics</h3>
+            <p>Track your progress and achievements across Skyrden games</p>
           </div>
           <div className="feature-card">
-            <h3>Collaborative Environment</h3>
-            <p>Join a team that values your input and creative ideas</p>
+            <h3>Community Hub</h3>
+            <p>Connect with other players and join special events</p>
           </div>
         </div>
       </section>
-      
-      <section className="positions">
-        <h2>Open Positions</h2>
-        <div className="position-grid">
-          <div className="position-card">
-            <h3>Frontend Developer</h3>
-            <p>Create exceptional user experiences with modern frameworks</p>
-            <Link to={user ? "/apply" : "#"} onClick={!user && loginWithDiscord} className="view-position-btn">
-              {user ? "Apply Now" : "Login to Apply"}
-            </Link>
-          </div>
-          <div className="position-card">
-            <h3>Backend Engineer</h3>
-            <p>Build robust APIs and server infrastructure</p>
-            <Link to={user ? "/apply" : "#"} onClick={!user && loginWithDiscord} className="view-position-btn">
-              {user ? "Apply Now" : "Login to Apply"}
-            </Link>
-          </div>
-          <div className="position-card">
-            <h3>DevOps Specialist</h3>
-            <p>Streamline our CI/CD pipeline and infrastructure management</p>
-            <Link to={user ? "/apply" : "#"} onClick={!user && loginWithDiscord} className="view-position-btn">
-              {user ? "Apply Now" : "Login to Apply"}
-            </Link>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-};
-
-// Application Form Component
-const ApplicationForm = ({ user }) => {
-  if (!user) {
-    return (
-      <div className="not-logged-in">
-        <h2>Please log in to access the application form</h2>
-        <Link to="/">Return to Home</Link>
-      </div>
-    );
-  }
-
-  if (!user.github_username) {
-    return (
-      <div className="not-complete">
-        <h2>Please connect your GitHub account to apply</h2>
-        <p>We need to review your GitHub profile as part of the application process.</p>
-        <Link to="/">Return to Home</Link>
-      </div>
-    );
-  }
-
-  const [formData, setFormData] = useState({
-    position: '',
-    experience: '',
-    skills: '',
-    whyJoin: '',
-    availability: ''
-  });
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert('Thank you for your application! We will review it and contact you soon.');
-    // In a real app, you would submit this data to your backend
-  };
-
-  return (
-    <div className="application-form">
-      <h1>Application Form</h1>
-      
-      <div className="user-profile-summary">
-        <h2>Your Profile</h2>
-        <p><strong>Discord:</strong> {user.discord_username}</p>
-        <p><strong>GitHub:</strong> {user.github_username}</p>
-      </div>
-      
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label htmlFor="position">Position</label>
-          <select 
-            id="position" 
-            name="position" 
-            value={formData.position} 
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select a position</option>
-            <option value="frontend">Frontend Developer</option>
-            <option value="backend">Backend Engineer</option>
-            <option value="devops">DevOps Specialist</option>
-          </select>
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="experience">Years of Experience</label>
-          <select 
-            id="experience" 
-            name="experience" 
-            value={formData.experience} 
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select experience level</option>
-            <option value="0-1">Less than 1 year</option>
-            <option value="1-3">1-3 years</option>
-            <option value="3-5">3-5 years</option>
-            <option value="5+">5+ years</option>
-          </select>
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="skills">Key Skills (comma separated)</label>
-          <input 
-            type="text" 
-            id="skills" 
-            name="skills" 
-            value={formData.skills} 
-            onChange={handleChange}
-            placeholder="e.g., React, Node.js, AWS"
-            required
-          />
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="whyJoin">Why do you want to join Skyrden?</label>
-          <textarea 
-            id="whyJoin" 
-            name="whyJoin" 
-            value={formData.whyJoin} 
-            onChange={handleChange}
-            placeholder="Tell us why you're interested in joining our team..."
-            required
-            rows="5"
-          ></textarea>
-        </div>
-        
-        <div className="form-group">
-          <label htmlFor="availability">Availability</label>
-          <select 
-            id="availability" 
-            name="availability" 
-            value={formData.availability} 
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select availability</option>
-            <option value="immediate">Immediate</option>
-            <option value="2weeks">2 weeks notice</option>
-            <option value="1month">1 month notice</option>
-            <option value="3months">3+ months notice</option>
-          </select>
-        </div>
-        
-        <button type="submit" className="submit-btn">Submit Application</button>
-      </form>
     </div>
   );
 };
@@ -248,29 +85,19 @@ const Dashboard = ({ user }) => {
 
   return (
     <div className="dashboard">
-      <h1>Applicant Dashboard</h1>
+      <h1>Dashboard</h1>
       <div className="dashboard-welcome">
         <h2>Welcome, {user.discord_username}!</h2>
-        {user.github_username ? (
-          <p>Your GitHub account <strong>{user.github_username}</strong> is connected.</p>
+        {user.roblox_username ? (
+          <p>Your Roblox account <strong>{user.roblox_username}</strong> is connected.</p>
         ) : (
-          <p>Please connect your GitHub account to complete your profile.</p>
+          <p>Please connect your Roblox account to access all features.</p>
         )}
       </div>
       
-      <div className="dashboard-status">
-        <h3>Application Status</h3>
-        <div className="status-card">
-          <p className="status-label">Frontend Developer:</p>
-          <p className="status-value pending">Under Review</p>
-        </div>
-        
-        <p className="status-note">Our team is reviewing your application. We'll contact you soon for next steps.</p>
-      </div>
-      
-      <div className="dashboard-links">
-        <Link to="/apply" className="dashboard-link">Submit New Application</Link>
-        <Link to="/profile" className="dashboard-link">Edit Profile</Link>
+      <div className="dashboard-stats">
+        <h3>Your Statistics</h3>
+        <p>Statistics will be available once you play our games.</p>
       </div>
     </div>
   );
@@ -289,7 +116,7 @@ const Profile = ({ user }) => {
 
   return (
     <div className="profile">
-      <h1>Applicant Profile</h1>
+      <h1>User Profile</h1>
       
       <div className="profile-card">
         <div className="profile-header">
@@ -307,9 +134,9 @@ const Profile = ({ user }) => {
             <span className="detail-value">{user.discord_username}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">GitHub Username:</span>
+            <span className="detail-label">Roblox Username:</span>
             <span className="detail-value">
-              {user.github_username || 'Not connected'}
+              {user.roblox_username || 'Not connected'}
             </span>
           </div>
         </div>
@@ -371,7 +198,7 @@ function App() {
         if (urlParams.get('auth') === 'success') {
           const token = urlParams.get('token');
           const discordId = urlParams.get('id');
-          const username = urlParams.get('username') || 'User';
+          const username = urlParams.get('username') || 'Discord User';
           
           console.log('Auth success detected in URL parameters');
           
@@ -379,7 +206,7 @@ function App() {
           const tempUser = {
             discord_id: discordId,
             discord_username: decodeURIComponent(username),
-            github_username: null,
+            roblox_username: null,
             is_admin: false
           };
           
@@ -393,23 +220,23 @@ function App() {
           return;
         }
         
-        // Handle GitHub linking success
-        if (urlParams.get('github_linked') === 'true') {
+        // Handle Roblox linking success
+        if (urlParams.get('roblox_linked') === 'true') {
           const username = urlParams.get('username');
           const storedUser = localStorage.getItem('skyrden_user');
           
-          console.log('GitHub linking detected in URL parameters');
+          console.log('Roblox linking detected in URL parameters');
           
           if (storedUser && username) {
             const parsedUser = JSON.parse(storedUser);
             const updatedUser = {
               ...parsedUser,
-              github_username: decodeURIComponent(username)
+              roblox_username: decodeURIComponent(username)
             };
             
             setUser(updatedUser);
             localStorage.setItem('skyrden_user', JSON.stringify(updatedUser));
-            setMessage(`Successfully connected GitHub account: ${username}`);
+            setMessage(`Successfully connected Roblox account: ${username}`);
           }
           
           // Clean URL
@@ -481,16 +308,28 @@ function App() {
     window.location.href = `${config.API_URL}/api/auth/discord`;
   };
   
-  // Connect GitHub account
-  const connectGitHub = () => {
+  // Connect Roblox account using stateless approach
+  const connectRoblox = () => {
     if (!user) {
       setError('Please log in with Discord first');
       setTimeout(() => setError(''), 3000);
       return;
     }
     
-    console.log('Connecting GitHub account...');
-    window.location.href = `${config.API_URL}/api/auth/github-link?discord_id=${user.discord_id}&username=${encodeURIComponent(user.discord_username || 'User')}`;
+    console.log('Connecting Roblox account using stateless approach...');
+    window.location.href = `${config.API_URL}/api/auth/stateless-roblox-link?discord_id=${user.discord_id}&username=${encodeURIComponent(user.discord_username || 'Discord User')}`;
+  };
+  
+  // Alternative Roblox connection method (also stateless)
+  const connectRobloxAlternative = () => {
+    if (!user || !user.discord_id) {
+      setError('No user logged in to link Roblox account');
+      setTimeout(() => setError(''), 5000);
+      return;
+    }
+    
+    console.log('Using alternative stateless Roblox connection method...');
+    window.location.href = `${config.API_URL}/api/auth/stateless-roblox-link?discord_id=${user.discord_id}&username=${encodeURIComponent(user.discord_username || 'Discord User')}`;
   };
   
   // Logout
@@ -558,13 +397,12 @@ function App() {
         <header className="app-header">
           <div className="header-logo">
             <Link to="/">
-              <h1>Skyrden Recruitment</h1>
+              <h1>Skyrden Portal</h1>
             </Link>
           </div>
           <div className="header-nav">
             <Link to="/">Home</Link>
             {user && <Link to="/dashboard">Dashboard</Link>}
-            {user && <Link to="/apply">Apply</Link>}
             {user && <Link to="/profile">Profile</Link>}
           </div>
           <div className="header-auth">
@@ -603,23 +441,22 @@ function App() {
               <LandingPage 
                 user={user} 
                 loginWithDiscord={loginWithDiscord}
-                connectGitHub={connectGitHub}
+                connectRoblox={connectRoblox}
               />
             } />
             
-            <Route path="/apply" element={<ApplicationForm user={user} />} />
             <Route path="/dashboard" element={<Dashboard user={user} />} />
             <Route path="/profile" element={<Profile user={user} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         
-        {/* GitHub Connection Reminder */}
-        {user && !user.github_username && (
+        {/* Roblox Connection Reminder */}
+        {user && !user.roblox_username && (
           <div className="connection-reminder">
-            <p>Complete your profile by connecting your GitHub account</p>
-            <button onClick={connectGitHub} className="github-connect-btn">
-              Connect GitHub Account
+            <p>Complete your profile by connecting your Roblox account</p>
+            <button onClick={connectRobloxAlternative} className="roblox-connect-btn">
+              Connect Roblox Account
             </button>
           </div>
         )}
@@ -643,31 +480,31 @@ function App() {
           <div className="footer-content">
             <div className="footer-logo">
               <h3>Skyrden</h3>
-              <p>Empowering innovation through technology</p>
+              <p>Your gateway to gaming experiences</p>
             </div>
             
             <div className="footer-links">
               <h4>Quick Links</h4>
               <ul>
                 <li><Link to="/">Home</Link></li>
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Careers</a></li>
-                <li><a href="#">Contact</a></li>
+                <li><a href="#">Games</a></li>
+                <li><a href="#">Community</a></li>
+                <li><a href="#">Support</a></li>
               </ul>
             </div>
             
             <div className="footer-social">
               <h4>Connect With Us</h4>
               <div className="social-icons">
-                <a href="#" className="social-icon">GitHub</a>
-                <a href="#" className="social-icon">LinkedIn</a>
+                <a href="#" className="social-icon">Discord</a>
+                <a href="#" className="social-icon">Roblox</a>
                 <a href="#" className="social-icon">Twitter</a>
               </div>
             </div>
           </div>
           
           <div className="footer-bottom">
-            <p>© 2025 Skyrden Technologies - All rights reserved</p>
+            <p>© 2025 Skyrden - All rights reserved</p>
           </div>
         </footer>
       </div>
