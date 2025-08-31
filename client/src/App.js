@@ -565,17 +565,16 @@ useEffect(() => {
     );
 
     return (
-        <Router>
-            <div className="App" style={{ minHeight: '100vh', background: '#f8fafc' }}>
-                <Routes>
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/apply" element={<ApplicationPortal />} />
-                    <Route path="/my-applications" element={<MyApplications />} />
-                    <Route path="/" element={<LandingPage />} />
-                </Routes>
-            </div>
-        </Router>
-    );
+    <Router>
+      <Routes>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/applications" element={<ApplicationPortal />} />
+        <Route path="/my-applications" element={<MyApplications />} />
+        <Route path="/" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
