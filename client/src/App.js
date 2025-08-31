@@ -7,6 +7,7 @@ import config from './config';
 import AdminDashboard from './pages/AdminDashboard';
 import ApplicationPortal from './pages/ApplicationPortal';
 import MyApplications from './pages/MyApplications';
+import NotFound from './pages/NotFound';
 
 function App() {
     const [user, setUser] = useState(null);
