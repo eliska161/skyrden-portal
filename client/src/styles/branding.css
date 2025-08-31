@@ -1,0 +1,133 @@
+/* Skyrden Branding CSS */
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Brand Colors */
+  --skyrden-blue: #002244;
+  --white: #FFFFFF;
+  --text-color: #353740;
+  --staff-blue: #4B4B4D;
+  --training-orange: #FF9900;
+  --ui-background: #E4E6EB;
+  
+  /* Status Colors */
+  --success-green: #40AF23;
+  --warning-yellow: #CFAD24;
+  --error-red: #AF2323;
+}
+
+/* Typography */
+body {
+  font-family: 'Source Sans Pro', sans-serif;
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+/* For UI components, use Montserrat */
+.ui-component {
+  font-family: 'Montserrat', sans-serif;
+}
+
+h1, h2, .page-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 25px;
+  color: var(--skyrden-blue);
+  margin-bottom: 0;
+}
+
+h3, .section-heading {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 14px;
+  color: var(--text-color);
+  margin-top: 20px;
+  margin-bottom: 6px;
+}
+
+h4, .heading1 {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--skyrden-blue);
+  margin-top: 10px;
+  margin-bottom: 6px;
+}
+
+h5, .heading2 {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-color);
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+p, .paragraph {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 11px;
+  color: var(--text-color);
+  text-align: justify;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+/* UI Components */
+.btn-primary {
+  background-color: var(--skyrden-blue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+.btn-secondary {
+  background-color: var(--ui-background);
+  color: var(--skyrden-blue);
+  border: 1px solid var(--skyrden-blue);
+  border-radius: 4px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+/* Header with line */
+.header-with-line {
+  position: relative;
+  padding-top: 20px;
+}
+
+.header-line {
+  position: absolute;
+  top: -0.1px;
+  left: -0.1px;
+  width: 100%;
+  height: 4px;
+  background-color: var(--skyrden-blue);
+}
+
+/* Logo placement */
+.logo-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.logo {
+  height: 60px;
+  margin-right: 15px;
+}
+
+.logo-text {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  color: var(--skyrden-blue);
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  text-transform: lowercase;
+}
