@@ -2,7 +2,8 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const User = require('../models/User');
-const fetch = require('node-fetch');
+// Fix for node-fetch ESM issue - using axios instead
+const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 
@@ -18,7 +19,6 @@ router.use((req, res, next) => {
   console.log('Session ID:', req.sessionID);
   console.log('Is authenticated:', req.isAuthenticated ? req.isAuthenticated() : 'N/A');
   console.log('User in session:', req.session?.user ? 'Yes' : 'No');
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
   next();
 });
 
@@ -211,121 +211,118 @@ router.get('/roblox/callback', async (req, res) => {
       return res.redirect(`${CLIENT_URL}/?error=no_code`);
     }
     
-    // Exchange code for token
-    const tokenResponse = await fetch('https://apis.roblox.com/oauth/v1/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${Buffer.from(`${process.env.ROBLOX_CLIENT_ID}:${process.env.ROBLOX_CLIENT_SECRET}`).toString('base64')}`
-      },
-      body: new URLSearchParams({
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': `${process.env.API_URL}/api/auth/roblox/callback`
-      }).toString()
-    });
-    
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      console.error('Failed to exchange code for token:', errorData);
-      return res.redirect(`${CLIENT_URL}/?error=token_exchange_failed`);
-    }
-    
-    const tokenData = await tokenResponse.json();
-    
-    // Get user info using the access token
-    const userInfoResponse = await fetch('https://apis.roblox.com/oauth/v1/userinfo', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`
+    // Exchange code for token using axios instead of node-fetch
+    try {
+      const authString = Buffer.from(`${process.env.ROBLOX_CLIENT_ID}:${process.env.ROBLOX_CLIENT_SECRET}`).toString('base64');
+      
+      const tokenResponse = await axios.post('https://apis.roblox.com/oauth/v1/token', 
+        new URLSearchParams({
+          'grant_type': 'authorization_code',
+          'code': code,
+          'redirect_uri': `${process.env.API_URL}/api/auth/roblox/callback`
+        }).toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${authString}`
+          }
+        }
+      );
+      
+      const tokenData = tokenResponse.data;
+      
+      // Get user info using the access token
+      const userInfoResponse = await axios.get('https://apis.roblox.com/oauth/v1/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`
+        }
+      });
+      
+      const userInfo = userInfoResponse.data;
+      
+      // Get Roblox username
+      const headers = {};
+      if (ROBLOX_API_KEY) {
+        headers['x-api-key'] = ROBLOX_API_KEY;
       }
-    });
+      
+      const usernameResponse = await axios.get(`https://users.roblox.com/v1/users/${userInfo.sub}`, {
+        headers
+      });
+      
+      const usernameData = usernameResponse.data;
+      const robloxUsername = usernameData.name;
+      
+      // Find the Discord user to update with Roblox info
+      let discordId = null;
+      
+      // Check multiple possible sources for Discord ID
+      if (req.session.pendingRobloxLink) {
+        discordId = req.session.pendingRobloxLink;
+      } else if (req.user) {
+        discordId = req.user.discord_id;
+      } else if (req.session.user) {
+        discordId = req.session.user.discord_id;
+      } else {
+        console.error('No Discord user found to link Roblox account');
+        return res.redirect(`${CLIENT_URL}/?error=no_discord_user_found`);
+      }
+      
+      console.log(`Linking Roblox account ${robloxUsername} to Discord ID ${discordId}`);
+      
+      // Update the user in the database
+      const updatedUser = await User.findOneAndUpdate(
+        { discord_id: discordId },
+        { 
+          roblox_id: userInfo.sub,
+          roblox_username: robloxUsername
+        },
+        { new: true }
+      );
+      
+      if (!updatedUser) {
+        console.error(`User with Discord ID ${discordId} not found in database`);
+        return res.redirect(`${CLIENT_URL}/?error=user_not_found`);
+      }
+      
+      // Update session
+      if (req.session.user) {
+        req.session.user = updatedUser;
+      }
+      
+      if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+        req.user = updatedUser;
+      }
+      
+      // Clear pendingRobloxLink
+      delete req.session.pendingRobloxLink;
+      
+      // Generate new JWT with updated user info
+      const token = jwt.sign(
+        { 
+          id: updatedUser.discord_id, 
+          username: updatedUser.discord_username,
+          roblox: updatedUser.roblox_username 
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRY }
+      );
+      
+      // Set updated token cookie
+      res.cookie('skyrden_auth', token, { 
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+      
+      // Redirect back to client with success
+      return res.redirect(`${CLIENT_URL}/?roblox_linked=true&username=${encodeURIComponent(robloxUsername)}&token=${token}`);
     
-    if (!userInfoResponse.ok) {
-      const errorData = await userInfoResponse.text();
-      console.error('Failed to get user info:', errorData);
-      return res.redirect(`${CLIENT_URL}/?error=user_info_failed`);
+    } catch (error) {
+      console.error('API request error:', error.response?.data || error.message);
+      return res.redirect(`${CLIENT_URL}/?error=api_error`);
     }
-    
-    const userInfo = await userInfoResponse.json();
-    
-    // Get Roblox username
-    const usernameResponse = await fetch(`https://users.roblox.com/v1/users/${userInfo.sub}`, {
-      headers: ROBLOX_API_KEY ? { 'x-api-key': ROBLOX_API_KEY } : {}
-    });
-    
-    if (!usernameResponse.ok) {
-      console.error('Failed to get username');
-      return res.redirect(`${CLIENT_URL}/?error=username_lookup_failed`);
-    }
-    
-    const usernameData = await usernameResponse.json();
-    const robloxUsername = usernameData.name;
-    
-    // Find the Discord user to update with Roblox info
-    let discordId = null;
-    
-    // Check multiple possible sources for Discord ID
-    if (req.session.pendingRobloxLink) {
-      discordId = req.session.pendingRobloxLink;
-    } else if (req.user) {
-      discordId = req.user.discord_id;
-    } else if (req.session.user) {
-      discordId = req.session.user.discord_id;
-    } else {
-      console.error('No Discord user found to link Roblox account');
-      return res.redirect(`${CLIENT_URL}/?error=no_discord_user_found`);
-    }
-    
-    console.log(`Linking Roblox account ${robloxUsername} to Discord ID ${discordId}`);
-    
-    // Update the user in the database
-    const updatedUser = await User.findOneAndUpdate(
-      { discord_id: discordId },
-      { 
-        roblox_id: userInfo.sub,
-        roblox_username: robloxUsername
-      },
-      { new: true }
-    );
-    
-    if (!updatedUser) {
-      console.error(`User with Discord ID ${discordId} not found in database`);
-      return res.redirect(`${CLIENT_URL}/?error=user_not_found`);
-    }
-    
-    // Update session
-    if (req.session.user) {
-      req.session.user = updatedUser;
-    }
-    
-    if (req.isAuthenticated && req.isAuthenticated() && req.user) {
-      req.user = updatedUser;
-    }
-    
-    // Clear pendingRobloxLink
-    delete req.session.pendingRobloxLink;
-    
-    // Generate new JWT with updated user info
-    const token = jwt.sign(
-      { 
-        id: updatedUser.discord_id, 
-        username: updatedUser.discord_username,
-        roblox: updatedUser.roblox_username 
-      },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRY }
-    );
-    
-    // Set updated token cookie
-    res.cookie('skyrden_auth', token, { 
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-    
-    // Redirect back to client with success
-    return res.redirect(`${CLIENT_URL}/?roblox_linked=true&username=${encodeURIComponent(robloxUsername)}&token=${token}`);
     
   } catch (error) {
     console.error('Error in Roblox callback:', error);
@@ -542,12 +539,20 @@ router.post('/logout', (req, res) => {
   
   // Clear session
   if (req.session) {
-    req.session.destroy();
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Error destroying session:', err);
+      }
+    });
   }
   
   // Clear passport login
   if (req.logout) {
-    req.logout();
+    req.logout(err => {
+      if (err) {
+        console.error('Error logging out with passport:', err);
+      }
+    });
   }
   
   // Clear auth cookie
