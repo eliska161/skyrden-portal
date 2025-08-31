@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 
+// IMPORTANT: discord_id must be a String, not an ObjectId
 const UserSchema = new mongoose.Schema({
   discord_id: {
-    type: String,
+    type: String,  // Keep as String, not ObjectId!
     required: true,
     unique: true
   },
@@ -40,10 +41,20 @@ const UserSchema = new mongoose.Schema({
   }
 });
 
-// Add a method to update last login
+// Helper methods
 UserSchema.methods.updateLastLogin = function() {
   this.last_login = Date.now();
   return this.save();
 };
 
-module.exports = mongoose.model('User', UserSchema);
+// Create and export the model
+const User = mongoose.model('User', UserSchema);
+
+// Add custom logging to user methods
+const originalSave = User.prototype.save;
+User.prototype.save = function() {
+  console.log(`[USER-DEBUG] Saving user: ${this.discord_id}, username: ${this.discord_username}`);
+  return originalSave.apply(this, arguments);
+};
+
+module.exports = User;

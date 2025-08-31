@@ -55,13 +55,19 @@ router.get('/status', (req, res) => {
   
   // Check if user exists in session
   if (req.session && req.session.user) {
-    debugLog('STATUS', 'User found in session');
+    debugLog('STATUS', 'User found in session', {
+      discord_id: req.session.user.discord_id,
+      discord_username: req.session.user.discord_username
+    });
     user = req.session.user;
     authenticated = true;
   } 
   // Check if user exists in passport
   else if (req.isAuthenticated && req.isAuthenticated()) {
-    debugLog('STATUS', 'User authenticated via passport');
+    debugLog('STATUS', 'User authenticated via passport', {
+      discord_id: req.user.discord_id,
+      discord_username: req.user.discord_username
+    });
     user = req.user;
     authenticated = true;
   }
@@ -72,10 +78,13 @@ router.get('/status', (req, res) => {
       const decoded = jwt.verify(req.cookies.skyrden_auth, JWT_SECRET);
       
       if (decoded && decoded.id) {
-        debugLog('STATUS', 'Valid token in cookie');
+        debugLog('STATUS', 'Valid token in cookie', {
+          id: decoded.id,
+          username: decoded.username
+        });
         user = {
           discord_id: decoded.id,
-          discord_username: decoded.username,
+          discord_username: decoded.username || 'Discord User',
           roblox_username: decoded.roblox || null,
           is_admin: decoded.is_admin || false
         };
@@ -91,22 +100,14 @@ router.get('/status', (req, res) => {
       debugLog('STATUS', 'Invalid token in cookie:', e.message);
     }
   }
-  // Check for auth bypass header (for development)
-  else if (process.env.NODE_ENV !== 'production' && 
-    req.headers['x-bypass-auth'] && 
-    req.headers['x-bypass-auth'].startsWith('dev_')) {
-    
-    debugLog('STATUS', 'Using development bypass token');
-    user = {
-      discord_id: 'dev_' + Date.now(),
-      discord_username: 'DevUser',
-      roblox_username: null,
-      is_admin: false
-    };
-    authenticated = true;
-  }
   
   if (authenticated && user) {
+    // Ensure we always have a username
+    if (!user.discord_username) {
+      user.discord_username = 'Discord User';
+      debugLog('STATUS', 'Fixed missing username in user object');
+    }
+    
     debugLog('STATUS', 'Returning authenticated user:', {
       id: user.discord_id,
       username: user.discord_username
@@ -160,66 +161,41 @@ router.get('/discord/callback', (req, res, next) => {
       return res.redirect(`${CLIENT_URL}/?error=no_user&info=${encodeURIComponent(JSON.stringify(info))}`);
     }
     
+    // Log the complete user profile
     debugLog('DISCORD-SUCCESS', 'Discord auth successful for profile:', {
-      id: profile.id,
-      username: profile.username
+      id: profile.discord_id || profile.id,
+      username: profile.discord_username || profile.username
     });
     
     try {
-      // Prepare user object
-      const user = {
-        discord_id: profile.id,
-        discord_username: profile.username,
-        discord_avatar: profile.avatar,
-        discord_email: profile.email,
-        roblox_username: null,
-        is_admin: false
-      };
+      // Ensure we always use the correct Discord ID
+      const discordId = profile.discord_id || profile.id;
+      const username = profile.discord_username || profile.username || 'Discord User';
       
-      // Try to save to database if available
-      try {
-        if (typeof User.findOneAndUpdate === 'function') {
-          const dbUser = await User.findOneAndUpdate(
-            { discord_id: profile.id },
-            { 
-              $set: {
-                discord_username: profile.username,
-                discord_avatar: profile.avatar,
-                discord_email: profile.email,
-                last_login: new Date()
-              }
-            },
-            { upsert: true, new: true }
-          );
-          
-          if (dbUser) {
-            // Update user object with any database values
-            user.roblox_username = dbUser.roblox_username;
-            user.is_admin = dbUser.is_admin;
-            debugLog('DATABASE', 'User saved/updated in database');
-          }
-        }
-      } catch (dbErr) {
-        debugLog('DATABASE-ERROR', 'Failed to save user to database:', dbErr.message);
-      }
+      debugLog('DISCORD-ID-CHECK', 'Using Discord ID and username:', {
+        id: discordId,
+        username: username
+      });
+      
+      // Prepare clean user object
+      const user = {
+        discord_id: discordId,
+        discord_username: username,
+        discord_avatar: profile.discord_avatar || profile.avatar,
+        discord_email: profile.discord_email || profile.email,
+        roblox_username: profile.roblox_username || null,
+        is_admin: profile.is_admin || false
+      };
       
       // Set user in session
       if (req.session) {
         req.session.user = user;
-        debugLog('SESSION', 'User set in session');
+        debugLog('SESSION', 'User set in session', {
+          id: user.discord_id,
+          username: user.discord_username
+        });
       } else {
         debugLog('SESSION-ERROR', 'No session available');
-      }
-      
-      // Login with passport if available
-      if (req.login) {
-        req.login(user, (loginErr) => {
-          if (loginErr) {
-            debugLog('LOGIN-ERROR', 'Failed to login with passport:', loginErr.message);
-          } else {
-            debugLog('LOGIN', 'Passport login successful');
-          }
-        });
       }
       
       // Generate JWT token with user data
@@ -255,6 +231,12 @@ router.get('/discord/callback', (req, res, next) => {
       }
       
       // Redirect with token and user ID in URL (for fallback)
+      debugLog('REDIRECT', 'Redirecting with auth data', {
+        returnUrl,
+        id: user.discord_id,
+        username: user.discord_username
+      });
+      
       return res.redirect(`${returnUrl}/?auth=success&token=${token}&id=${user.discord_id}&username=${encodeURIComponent(user.discord_username)}`);
     } catch (error) {
       debugLog('CRITICAL-ERROR', 'Unhandled error in Discord callback:', error);
@@ -278,13 +260,13 @@ router.post('/token-login', (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     debugLog('TOKEN-LOGIN', 'Token verified successfully:', {
       id: decoded.id,
-      username: decoded.username
+      username: decoded.username || 'No username in token'
     });
     
-    // Create user object from token data
+    // Create user object from token data with fallback for missing username
     const user = {
       discord_id: decoded.id,
-      discord_username: decoded.username,
+      discord_username: decoded.username || 'Discord User',
       roblox_username: decoded.roblox || null,
       is_admin: decoded.is_admin || false
     };
@@ -313,7 +295,8 @@ router.post('/token-login', (req, res) => {
           { discord_id: decoded.id },
           { 
             $set: { 
-              last_login: new Date() 
+              last_login: new Date(),
+              discord_username: decoded.username || 'Discord User'
             }
           },
           { upsert: false }
@@ -397,7 +380,10 @@ router.get('/roblox', (req, res) => {
     hasPassportUser: !!passportUser,
     hasTokenUser: !!tokenUser,
     hasDirectUser: !!directUser,
-    usingUser: user ? 'yes' : 'no'
+    usingUser: user ? {
+      id: user.discord_id,
+      username: user.discord_username
+    } : 'No user found'
   });
   
   if (user) {
@@ -571,7 +557,7 @@ router.get('/roblox/callback', async (req, res) => {
               roblox_username: robloxUsername
             }
           },
-          { upsert: true, new: true }
+          { upsert: false, new: true }
         );
         
         debugLog('ROBLOX-CALLBACK', 'Updated user in database');
@@ -589,15 +575,30 @@ router.get('/roblox/callback', async (req, res) => {
         roblox_username: robloxUsername,
         is_admin: false
       };
+    } else {
+      // Ensure discord_id is correct
+      if (user.discord_id !== discordId) {
+        debugLog('ID-FIX', 'Fixing discord_id mismatch in Roblox flow');
+        user.discord_id = discordId;
+      }
       
-      // Update with Roblox info
-      user.roblox_id = userInfo.sub;
-      user.roblox_username = robloxUsername;
+      // Ensure username exists
+      if (!user.discord_username) {
+        user.discord_username = 'Discord User';
+        debugLog('USERNAME-FIX', 'Added missing discord_username in Roblox flow');
+      }
     }
     
     // Update session
     if (req.session) {
-      req.session.user = user;
+      req.session.user = {
+        discord_id: discordId,
+        discord_username: user.discord_username || 'Discord User',
+        roblox_username: robloxUsername,
+        roblox_id: userInfo.sub,
+        is_admin: user.is_admin || false
+      };
+      
       delete req.session.robloxState;
       delete req.session.pendingRobloxLink;
       
@@ -607,8 +608,8 @@ router.get('/roblox/callback', async (req, res) => {
     // Generate new token with Roblox data
     const token = jwt.sign(
       {
-        id: user.discord_id,
-        username: user.discord_username,
+        id: discordId,
+        username: user.discord_username || 'Discord User',
         roblox: robloxUsername,
         is_admin: user.is_admin || false
       },
@@ -671,6 +672,18 @@ router.get('/debug-auth', (req, res) => {
       cookie: req.headers.cookie,
       authorization: req.headers.authorization
     }
+  });
+});
+
+// Raw user data - useful for debugging ID issues
+router.get('/raw-user', (req, res) => {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({ authenticated: false });
+  }
+  
+  res.json({
+    session_user: req.session.user,
+    passport_user: req.user || null
   });
 });
 

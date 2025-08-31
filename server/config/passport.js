@@ -67,8 +67,15 @@ passport.use(new DiscordStrategy({
       id: profile.id,
       username: profile.username,
       email: profile.email ? 'Set (hidden)' : 'Not set',
-      avatar: profile.avatar ? 'Set' : 'Not set'
+      avatar: profile.avatar ? 'Set' : 'Not set',
+      displayName: profile.displayName || 'Not set'
     });
+    
+    // Ensure profile has required fields
+    if (!profile.username) {
+      profile.username = profile.displayName || profile.id;
+      debugLog('PROFILE-FIX', 'Set missing username from displayName or id');
+    }
     
     try {
       // Try to find user in database
@@ -77,29 +84,66 @@ passport.use(new DiscordStrategy({
       try {
         // Check if User model and database connection are available
         if (typeof User.findOne === 'function') {
+          // IMPORTANT: Query by discord_id string
           user = await User.findOne({ discord_id: profile.id });
           
           if (!user) {
             debugLog('DB-CREATE', 'Creating new user in database');
-            // Create new user
+            // Create new user - CRITICAL: Use profile.id for discord_id
             user = new User({
               discord_id: profile.id,
               discord_username: profile.username,
               discord_avatar: profile.avatar,
               discord_email: profile.email
             });
+            
             await user.save();
-            debugLog('DB-CREATE', 'New user created in database');
+            
+            // Verify discord_id after save
+            if (user.discord_id !== profile.id) {
+              debugLog('ID-FIX', 'Fixing discord_id after save');
+              user.discord_id = profile.id;
+            }
+            
+            debugLog('DB-CREATE', 'New user created in database', {
+              discord_id: user.discord_id,
+              username: user.discord_username
+            });
           } else {
             debugLog('DB-UPDATE', 'Updating existing user in database');
-            // Update existing user
+            
+            // CRITICAL: Ensure discord_id remains the original Discord ID
+            if (user.discord_id !== profile.id) {
+              debugLog('ID-MISMATCH', `Discord ID mismatch: DB has ${user.discord_id}, Discord returned ${profile.id}`);
+              user.discord_id = profile.id;
+            }
+            
+            // Update existing user fields
             user.discord_username = profile.username;
             user.discord_avatar = profile.avatar;
             user.discord_email = profile.email;
             user.last_login = new Date();
+            
             await user.save();
-            debugLog('DB-UPDATE', 'User updated in database');
+            debugLog('DB-UPDATE', 'User updated in database', {
+              discord_id: user.discord_id,
+              username: user.discord_username
+            });
           }
+          
+          // Create a clean user object with correct properties
+          const cleanUser = {
+            discord_id: profile.id,
+            discord_username: user.discord_username,
+            discord_avatar: user.discord_avatar,
+            discord_email: user.discord_email,
+            roblox_username: user.roblox_username,
+            roblox_id: user.roblox_id,
+            is_admin: user.is_admin || false
+          };
+          
+          debugLog('USER-CLEAN', 'Created clean user object', cleanUser);
+          return done(null, cleanUser);
         } else {
           throw new Error('User model not properly initialized');
         }
@@ -112,22 +156,26 @@ passport.use(new DiscordStrategy({
           id: user.discord_id,
           username: user.discord_username
         });
+        
+        return done(null, user);
       }
-      
-      return done(null, user);
     } catch (err) {
       debugLog('CRITICAL-ERROR', 'Authentication error', err);
       
       // Always provide a user object even in case of errors
       const fallbackUser = {
         discord_id: profile.id,
-        discord_username: profile.username,
+        discord_username: profile.username || profile.displayName || 'Discord User',
         discord_avatar: profile.avatar,
         discord_email: profile.email,
-        is_admin: false
+        is_admin: false,
+        roblox_username: null
       };
       
-      debugLog('FALLBACK', 'Using fallback user due to critical error');
+      debugLog('FALLBACK', 'Using fallback user due to critical error', {
+        id: fallbackUser.discord_id,
+        username: fallbackUser.discord_username
+      });
       return done(null, fallbackUser);
     }
   }
@@ -140,7 +188,7 @@ passport.serializeUser((user, done) => {
     username: user.discord_username
   });
   
-  // Store only the discord_id in the session
+  // Store only the discord_id in the session - CRITICAL: Use discord_id not _id
   done(null, user.discord_id);
 });
 
@@ -154,7 +202,31 @@ passport.deserializeUser(async (id, done) => {
     
     try {
       if (typeof User.findOne === 'function') {
+        // IMPORTANT: Query by discord_id string
         user = await User.findOne({ discord_id: id });
+        
+        if (user) {
+          debugLog('DB-DESERIALIZE', 'User found in database');
+          
+          // Ensure discord_id is correct
+          if (user.discord_id !== id) {
+            debugLog('ID-FIX', 'Fixing discord_id in deserialized user');
+            user.discord_id = id;
+          }
+          
+          // Create a clean user object
+          const cleanUser = {
+            discord_id: id,
+            discord_username: user.discord_username,
+            discord_avatar: user.discord_avatar,
+            discord_email: user.discord_email,
+            roblox_username: user.roblox_username,
+            roblox_id: user.roblox_id,
+            is_admin: user.is_admin || false
+          };
+          
+          return done(null, cleanUser);
+        }
       }
     } catch (dbError) {
       debugLog('DB-ERROR', 'Database lookup failed during deserialization', dbError);
