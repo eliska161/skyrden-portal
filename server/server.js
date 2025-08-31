@@ -16,9 +16,7 @@ connectDB();
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.CLIENT_URL 
-    : ['http://localhost:3000', 'https://localhost:3000'],
+  origin: ['https://skyrden-portal.netlify.app', 'http://localhost:3000', 'https://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -30,7 +28,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session configuration
+// Session configuration - Replace this block
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret',
   resave: false,
@@ -44,12 +42,14 @@ app.use(session({
     }
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+    // MODIFIED SECTION - Always use these settings for cross-domain Netlify to Railway
+    secure: true, // ALWAYS true for cross-domain (https)
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Allow cross-site cookies in production
+    sameSite: 'none' // ALWAYS 'none' for cross-domain
   }
 }));
+
 
 // Passport initialization
 require('./config/passport');
