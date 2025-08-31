@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import './App.css';
+
+// Import application components
+import ApplicationList from './pages/ApplicationList';
+import ApplicationForm from './pages/ApplicationForm';
+import ApplicationSubmitted from './pages/ApplicationSubmitted';
+import MyApplications from './pages/MyApplications';
+
+// Admin components
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ApplicationBuilder from './pages/admin/ApplicationBuilder';
+import ReviewSubmission from './pages/admin/ReviewSubmission';
 
 // Configuration
 const config = {
@@ -22,49 +34,48 @@ const Loading = ({ onForceLoad }) => (
 );
 
 // Landing Page Component
-const LandingPage = ({ user, loginWithDiscord, connectRoblox }) => {
+const LandingPage = ({ user, loginWithDiscord }) => {
   console.log('Rendering LandingPage with user:', user);
   
   return (
     <div className="landing-page">
       <section className="hero">
-        <h1>Welcome to Skyrden Portal</h1>
-        <p>Your gateway to the Skyrden gaming ecosystem</p>
+        <h1>Welcome to Skyrden Application Portal</h1>
+        <p>Apply for positions and opportunities at Skyrden</p>
         
         {!user ? (
-          <button onClick={loginWithDiscord} className="discord-login-btn">
-            Login with Discord
+          <button onClick={loginWithDiscord} className="start-btn">
+            Start Application
           </button>
-        ) : !user.roblox_username ? (
-          <div className="roblox-connect">
-            <p>Connect your Roblox account to access all features</p>
-            <button onClick={connectRoblox} className="roblox-connect-btn">
-              Connect Roblox Account
-            </button>
-          </div>
         ) : (
-          <div className="account-connected">
-            <h3>Your accounts are connected!</h3>
-            <p>Discord: <strong>{user.discord_username}</strong></p>
-            <p>Roblox: <strong>{user.roblox_username}</strong></p>
+          <div className="action-buttons">
+            <Link to="/applications" className="btn-primary">
+              View Applications
+            </Link>
+            <Link to="/my-applications" className="btn-secondary">
+              My Applications
+            </Link>
           </div>
         )}
       </section>
       
       <section className="features">
-        <h2>Features</h2>
+        <h2>How It Works</h2>
         <div className="feature-grid">
           <div className="feature-card">
-            <h3>Cross-Platform Integration</h3>
-            <p>Connect your Discord and Roblox accounts for a seamless gaming experience</p>
+            <div className="feature-icon">1</div>
+            <h3>Create an Account</h3>
+            <p>Sign in with Discord and connect your Roblox account</p>
           </div>
           <div className="feature-card">
-            <h3>Game Statistics</h3>
-            <p>Track your progress and achievements across Skyrden games</p>
+            <div className="feature-icon">2</div>
+            <h3>Choose an Application</h3>
+            <p>Browse available applications and select one to apply</p>
           </div>
           <div className="feature-card">
-            <h3>Community Hub</h3>
-            <p>Connect with other players and join special events</p>
+            <div className="feature-icon">3</div>
+            <h3>Submit Your Application</h3>
+            <p>Fill out the form and submit your application for review</p>
           </div>
         </div>
       </section>
@@ -72,78 +83,22 @@ const LandingPage = ({ user, loginWithDiscord, connectRoblox }) => {
   );
 };
 
-// Dashboard Component
-const Dashboard = ({ user }) => {
-  if (!user) {
-    return (
-      <div className="not-logged-in">
-        <h2>Please log in to view your dashboard</h2>
-        <Link to="/">Return to Home</Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="dashboard">
-      <h1>Dashboard</h1>
-      <div className="dashboard-welcome">
-        <h2>Welcome, {user.discord_username}!</h2>
-        {user.roblox_username ? (
-          <p>Your Roblox account <strong>{user.roblox_username}</strong> is connected.</p>
-        ) : (
-          <p>Please connect your Roblox account to access all features.</p>
-        )}
-      </div>
-      
-      <div className="dashboard-stats">
-        <h3>Your Statistics</h3>
-        <p>Statistics will be available once you play our games.</p>
-      </div>
+// Application Submitted Confirmation Component
+const ApplicationSubmittedPage = () => (
+  <div className="application-submitted">
+    <div className="success-icon">✓</div>
+    <h1>Application Submitted!</h1>
+    <p>Thank you for your application. Our team will review it and get back to you soon.</p>
+    <div className="action-buttons">
+      <Link to="/my-applications" className="btn-primary">
+        View My Applications
+      </Link>
+      <Link to="/applications" className="btn-secondary">
+        Apply for Another Position
+      </Link>
     </div>
-  );
-};
-
-// Profile Component
-const Profile = ({ user }) => {
-  if (!user) {
-    return (
-      <div className="not-logged-in">
-        <h2>Please log in to view your profile</h2>
-        <Link to="/">Return to Home</Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="profile">
-      <h1>User Profile</h1>
-      
-      <div className="profile-card">
-        <div className="profile-header">
-          <h2>{user.discord_username}</h2>
-          {user.is_admin && <span className="admin-badge">Admin</span>}
-        </div>
-        
-        <div className="profile-details">
-          <div className="detail-row">
-            <span className="detail-label">Discord ID:</span>
-            <span className="detail-value">{user.discord_id}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Discord Username:</span>
-            <span className="detail-value">{user.discord_username}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Roblox Username:</span>
-            <span className="detail-value">
-              {user.roblox_username || 'Not connected'}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+  </div>
+);
 
 // NotFound Component
 const NotFound = () => (
@@ -154,12 +109,30 @@ const NotFound = () => (
   </div>
 );
 
+// Unauthorized Access Component
+const Unauthorized = () => (
+  <div className="unauthorized">
+    <h1>Access Denied</h1>
+    <p>You do not have permission to access this area.</p>
+    <Link to="/">Return to Home</Link>
+  </div>
+);
+
 function App() {
   // State variables
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  // Check if user is admin
+  const isAdmin = user && user.is_admin === true;
+
+  // Setup axios defaults
+  useEffect(() => {
+    axios.defaults.baseURL = config.API_URL;
+    axios.defaults.withCredentials = true;
+  }, []);
 
   // Debug log user state changes
   useEffect(() => {
@@ -268,22 +241,17 @@ function App() {
           
         // Try to validate with API
         try {
-          const response = await fetch(`${config.API_URL}/api/auth/status`, {
-            credentials: 'include',
+          const response = await axios.get(`${config.API_URL}/api/auth/status`, {
+            withCredentials: true,
             headers: { 'Accept': 'application/json' }
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            console.log('API auth status response:', data);
-            
-            if (data.authenticated && data.user) {
-              console.log('User authenticated with API', data.user);
-              setUser(data.user);
-              localStorage.setItem('skyrden_user', JSON.stringify(data.user));
-            }
+          if (response.data && response.data.authenticated && response.data.user) {
+            console.log('User authenticated with API', response.data.user);
+            setUser(response.data.user);
+            localStorage.setItem('skyrden_user', JSON.stringify(response.data.user));
           } else {
-            console.log('API returned status', response.status);
+            console.log('User not authenticated with API');
           }
         } catch (apiError) {
           console.error('API check failed', apiError);
@@ -302,13 +270,13 @@ function App() {
     initializeApp();
   }, []);
   
-  // Login with Discord
+  // Login with Discord (stateless)
   const loginWithDiscord = () => {
     console.log('Redirecting to Discord auth...');
-    window.location.href = `${config.API_URL}/api/auth/discord`;
+    window.location.href = `${config.API_URL}/api/auth/discord-stateless?redirect=${encodeURIComponent(window.location.origin)}`;
   };
   
-  // Connect Roblox account using stateless approach
+  // Connect Roblox account (stateless)
   const connectRoblox = () => {
     if (!user) {
       setError('Please log in with Discord first');
@@ -320,20 +288,8 @@ function App() {
     window.location.href = `${config.API_URL}/api/auth/stateless-roblox-link?discord_id=${user.discord_id}&username=${encodeURIComponent(user.discord_username || 'Discord User')}`;
   };
   
-  // Alternative Roblox connection method (also stateless)
-  const connectRobloxAlternative = () => {
-    if (!user || !user.discord_id) {
-      setError('No user logged in to link Roblox account');
-      setTimeout(() => setError(''), 5000);
-      return;
-    }
-    
-    console.log('Using alternative stateless Roblox connection method...');
-    window.location.href = `${config.API_URL}/api/auth/stateless-roblox-link?discord_id=${user.discord_id}&username=${encodeURIComponent(user.discord_username || 'Discord User')}`;
-  };
-  
   // Logout
-  const logout = () => {
+  const logout = async () => {
     console.log('Logging out...');
     
     // Clear localStorage
@@ -341,16 +297,62 @@ function App() {
     setUser(null);
     
     // Try API logout
-    fetch(`${config.API_URL}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    }).catch(err => {
+    try {
+      await axios.post('/api/auth/logout', {}, { withCredentials: true });
+      console.log('Logout API call successful');
+    } catch (err) {
       console.error('Logout API error:', err);
-    });
+    }
     
     setMessage('Logged out successfully');
     setTimeout(() => setMessage(''), 3000);
   };
+
+  // Protected route component
+  const ProtectedRoute = ({ element }) => {
+    if (loading) {
+      return <Loading onForceLoad={forceLoadingFalse} />;
+    }
+    
+    if (!user) {
+      return <Navigate to="/" replace />;
+    }
+    
+    // Check if user has Roblox connected
+    if (!user.roblox_username) {
+      return <RobloxConnectPrompt connectRoblox={connectRoblox} />;
+    }
+    
+    return element;
+  };
+  
+  // Admin route component
+  const AdminRoute = ({ element }) => {
+    if (loading) {
+      return <Loading onForceLoad={forceLoadingFalse} />;
+    }
+    
+    if (!user) {
+      return <Navigate to="/" replace />;
+    }
+    
+    if (!isAdmin) {
+      return <Unauthorized />;
+    }
+    
+    return element;
+  };
+  
+  // Roblox connection prompt component
+  const RobloxConnectPrompt = ({ connectRoblox }) => (
+    <div className="connect-roblox-prompt">
+      <h2>Connect Your Roblox Account</h2>
+      <p>To continue with your application, please connect your Roblox account.</p>
+      <button onClick={connectRoblox} className="roblox-connect-btn">
+        Connect Roblox Account
+      </button>
+    </div>
+  );
 
   // Debug: Show active cookies
   const debugCookies = () => {
@@ -402,8 +404,9 @@ function App() {
           </div>
           <div className="header-nav">
             <Link to="/">Home</Link>
-            {user && <Link to="/dashboard">Dashboard</Link>}
-            {user && <Link to="/profile">Profile</Link>}
+            {user && <Link to="/applications">Applications</Link>}
+            {user && <Link to="/my-applications">My Applications</Link>}
+            {user && user.roblox_username && <Link to="/profile">Profile</Link>}
           </div>
           <div className="header-auth">
             {user ? (
@@ -413,8 +416,13 @@ function App() {
               </div>
             ) : (
               <button onClick={loginWithDiscord} className="discord-login-btn">
-                Login with Discord
+                Start Application
               </button>
+            )}
+            {isAdmin && (
+              <Link to="/admin" className="admin-gear" title="Admin Dashboard">
+                ⚙️
+              </Link>
             )}
           </div>
         </header>
@@ -437,16 +445,23 @@ function App() {
         {/* Main Content */}
         <main className="app-content">
           <Routes>
-            <Route path="/" element={
-              <LandingPage 
-                user={user} 
-                loginWithDiscord={loginWithDiscord}
-                connectRoblox={connectRoblox}
-              />
-            } />
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage user={user} loginWithDiscord={loginWithDiscord} />} />
             
-            <Route path="/dashboard" element={<Dashboard user={user} />} />
-            <Route path="/profile" element={<Profile user={user} />} />
+            {/* User Routes */}
+            <Route path="/applications" element={<ProtectedRoute element={<ApplicationList />} />} />
+            <Route path="/apply/:id" element={<ProtectedRoute element={<ApplicationForm user={user} />} />} />
+            <Route path="/application-submitted" element={<ProtectedRoute element={<ApplicationSubmittedPage />} />} />
+            <Route path="/my-applications" element={<ProtectedRoute element={<MyApplications />} />} />
+            <Route path="/profile" element={<ProtectedRoute element={<Profile user={user} />} />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminRoute element={<AdminDashboard />} />} />
+            <Route path="/admin/applications/new" element={<AdminRoute element={<ApplicationBuilder />} />} />
+            <Route path="/admin/applications/edit/:id" element={<AdminRoute element={<ApplicationBuilder />} />} />
+            <Route path="/admin/submissions/:id" element={<AdminRoute element={<ReviewSubmission />} />} />
+            
+            {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
@@ -454,8 +469,8 @@ function App() {
         {/* Roblox Connection Reminder */}
         {user && !user.roblox_username && (
           <div className="connection-reminder">
-            <p>Complete your profile by connecting your Roblox account</p>
-            <button onClick={connectRobloxAlternative} className="roblox-connect-btn">
+            <p>Please connect your Roblox account to access all features</p>
+            <button onClick={connectRoblox} className="roblox-connect-btn">
               Connect Roblox Account
             </button>
           </div>
@@ -480,36 +495,82 @@ function App() {
           <div className="footer-content">
             <div className="footer-logo">
               <h3>Skyrden</h3>
-              <p>Your gateway to gaming experiences</p>
+              <p>Application Portal</p>
             </div>
             
             <div className="footer-links">
               <h4>Quick Links</h4>
               <ul>
                 <li><Link to="/">Home</Link></li>
-                <li><a href="#">Games</a></li>
-                <li><a href="#">Community</a></li>
-                <li><a href="#">Support</a></li>
+                <li><a href="#about">About Us</a></li>
+                <li><a href="#faq">FAQ</a></li>
+                <li><a href="#contact">Contact</a></li>
               </ul>
             </div>
             
             <div className="footer-social">
               <h4>Connect With Us</h4>
               <div className="social-icons">
-                <a href="#" className="social-icon">Discord</a>
-                <a href="#" className="social-icon">Roblox</a>
-                <a href="#" className="social-icon">Twitter</a>
+                <a href="https://discord.gg/skyrden" className="social-icon">Discord</a>
+                <a href="https://roblox.com/groups/skyrden" className="social-icon">Roblox</a>
               </div>
             </div>
           </div>
           
           <div className="footer-bottom">
-            <p>© 2025 Skyrden - All rights reserved</p>
+            <p>© {new Date().getFullYear()} Skyrden - All rights reserved</p>
           </div>
         </footer>
       </div>
     </Router>
   );
 }
+
+// Profile Component
+const Profile = ({ user }) => {
+  if (!user) {
+    return (
+      <div className="not-logged-in">
+        <h2>Please log in to view your profile</h2>
+        <Link to="/">Return to Home</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="profile">
+      <h1>User Profile</h1>
+      
+      <div className="profile-card">
+        <div className="profile-header">
+          <h2>{user.discord_username}</h2>
+          {user.is_admin && <span className="admin-badge">Admin</span>}
+        </div>
+        
+        <div className="profile-details">
+          <div className="detail-row">
+            <span className="detail-label">Discord ID:</span>
+            <span className="detail-value">{user.discord_id}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Discord Username:</span>
+            <span className="detail-value">{user.discord_username}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Roblox Username:</span>
+            <span className="detail-value">
+              {user.roblox_username || 'Not connected'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="profile-applications">
+          <h3>My Applications</h3>
+          <Link to="/my-applications" className="btn-primary">View My Applications</Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default App;
