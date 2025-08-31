@@ -1,7 +1,5 @@
 const config = {
-  API_URL: process.env.NODE_ENV === 'production' 
-    ? 'https://skd-portal.up.railway.app'
-    : 'http://localhost:5001'
+  API_URL: process.env.REACT_APP_API_URL || 'http://localhost:5001'
 };
 
 export default config;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import config from '../config';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = config.API_URL;
 
 const ApplicationPortal = () => {
     const [user, setUser] = useState(null);

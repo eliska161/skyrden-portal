@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import config from '../config';
 
-const API_URL = 'https://skyrden-portal-production.up.railway.app'; // Replace with your real server URL
+const API_URL = config.API_URL;
 
 const AdminDashboard = () => {
     const [user, setUser] = useState(null);

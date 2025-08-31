@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import config from '../config';
 
 const MyApplications = () => {
     const [user, setUser] = useState(null);
