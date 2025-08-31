@@ -1,43 +1,417 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* Global styles */
+:root {
+  --primary-color: #5865F2;
+  --secondary-color: #2D3142;
+  --success-color: #43B581;
+  --error-color: #F04747;
+  --text-color: #333;
+  --light-bg: #f5f5f5;
+  --dark-bg: #2c2f33;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 body {
-    font-family: 'Source Sans Pro', sans-serif;
-    line-height: 1.6;
-    color: #353740;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: var(--text-color);
+  background-color: var(--light-bg);
 }
 
-h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 600;
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-button {
-    transition: all 0.2s ease;
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: white;
+  box-shadow: var(--box-shadow);
 }
 
-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.header-logo a {
+  text-decoration: none;
+  color: var(--secondary-color);
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
+.header-logo h1 {
+  margin: 0;
+  font-size: 1.5rem;
 }
 
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
+.header-nav {
+  display: flex;
+  gap: 1.5rem;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #002244;
-    border-radius: 4px;
+.header-nav a {
+  text-decoration: none;
+  color: var(--secondary-color);
+  font-weight: 500;
+  transition: color 0.2s;
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #003366;
+.header-nav a:hover {
+  color: var(--primary-color);
+}
+
+.header-auth {
+  display: flex;
+  align-items: center;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.discord-login-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.discord-login-btn:hover {
+  background-color: #4752c4;
+}
+
+/* Message containers */
+.message-container {
+  margin: 1rem 2rem;
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.error {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* Main content */
+.app-content {
+  flex: 1;
+  padding: 2rem;
+}
+
+/* Footer */
+.app-footer {
+  padding: 1rem 2rem;
+  background-color: var(--dark-bg);
+  color: white;
+  text-align: center;
+}
+
+/* Loading component */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid var(--primary-color);
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Landing page */
+.landing-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hero {
+  text-align: center;
+  padding: 3rem 1rem;
+  margin-bottom: 2rem;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.hero h1 {
+  margin-bottom: 0.5rem;
+  font-size: 2.5rem;
+}
+
+.hero p {
+  margin-bottom: 2rem;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.roblox-connect {
+  margin-top: 1rem;
+}
+
+.roblox-connect-btn {
+  background-color: #00A2FF;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.roblox-connect-btn:hover {
+  background-color: #0082cc;
+}
+
+.account-connected {
+  padding: 1rem;
+  background-color: #f0f9ff;
+  border: 1px solid #bde0fe;
+  border-radius: var(--border-radius);
+  margin-top: 2rem;
+}
+
+.features {
+  padding: 2rem 0;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.feature-card {
+  padding: 1.5rem;
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: transform 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Dashboard */
+.dashboard {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.dashboard-welcome {
+  background-color: white;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.dashboard-stats {
+  background-color: white;
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+/* Profile */
+.profile {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.profile-card {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+}
+
+.profile-header {
+  padding: 2rem;
+  background-color: var(--primary-color);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-badge {
+  background-color: #FF6B6B;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.profile-details {
+  padding: 2rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-weight: bold;
+  color: #666;
+}
+
+/* NotFound */
+.not-found {
+  max-width: 600px;
+  margin: 3rem auto;
+  text-align: center;
+}
+
+.not-found a {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--primary-color);
+  color: white;
+  text-decoration: none;
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s;
+}
+
+.not-found a:hover {
+  background-color: #4752c4;
+}
+
+/* Alternative connection panel */
+.alt-connection-panel {
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  padding: 1rem 2rem;
+  margin: 0 2rem 1rem;
+  border-radius: var(--border-radius);
+  text-align: center;
+}
+
+.alt-connect-btn {
+  background-color: #ffaa00;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  margin-top: 0.5rem;
+}
+
+.alt-connect-btn:hover {
+  background-color: #cc8800;
+}
+
+/* Debug panel */
+.debug-panel {
+  margin: 1rem 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: var(--border-radius);
+}
+
+.debug-panel summary {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.debug-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.debug-controls button {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.user-data {
+  background-color: #212529;
+  color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 300px;
+}
+
+.user-data pre {
+  margin: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    padding: 1rem;
+  }
+  
+  .header-logo, .header-nav, .header-auth {
+    margin-bottom: 1rem;
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+  }
+  
+  .detail-label {
+    margin-bottom: 0.25rem;
+  }
 }

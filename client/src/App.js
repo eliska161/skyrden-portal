@@ -1,19 +1,152 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import './App.css';
-
-// Import your components here
-import LandingPage from './components/LandingPage';
-import Dashboard from './components/Dashboard';
-import Profile from './components/Profile';
-import NotFound from './components/NotFound';
-import Loading from './components/Loading';
 
 // Configuration
 const config = {
   API_URL: process.env.REACT_APP_API_URL || 'http://skd-portal.up.railway.app',
   DISCORD_CLIENT_ID: process.env.REACT_APP_DISCORD_CLIENT_ID || '1408435014613602355'
 };
+
+// Simple Loading Component
+const Loading = () => (
+  <div className="loading-container">
+    <div className="loading-spinner"></div>
+    <p>Loading...</p>
+  </div>
+);
+
+// Landing Page Component
+const LandingPage = ({ user, loginWithDiscord, connectRoblox }) => {
+  console.log('Rendering LandingPage with user:', user);
+  
+  return (
+    <div className="landing-page">
+      <section className="hero">
+        <h1>Welcome to Skyrden Portal</h1>
+        <p>Your gateway to the Skyrden gaming ecosystem</p>
+        
+        {!user ? (
+          <button onClick={loginWithDiscord} className="discord-login-btn">
+            Login with Discord
+          </button>
+        ) : !user.roblox_username ? (
+          <div className="roblox-connect">
+            <p>Connect your Roblox account to access all features</p>
+            <button onClick={connectRoblox} className="roblox-connect-btn">
+              Connect Roblox Account
+            </button>
+          </div>
+        ) : (
+          <div className="account-connected">
+            <h3>Your accounts are connected!</h3>
+            <p>Discord: <strong>{user.discord_username}</strong></p>
+            <p>Roblox: <strong>{user.roblox_username}</strong></p>
+          </div>
+        )}
+      </section>
+      
+      <section className="features">
+        <h2>Features</h2>
+        <div className="feature-grid">
+          <div className="feature-card">
+            <h3>Cross-Platform Integration</h3>
+            <p>Connect your Discord and Roblox accounts for a seamless gaming experience</p>
+          </div>
+          <div className="feature-card">
+            <h3>Game Statistics</h3>
+            <p>Track your progress and achievements across Skyrden games</p>
+          </div>
+          <div className="feature-card">
+            <h3>Community Hub</h3>
+            <p>Connect with other players and join special events</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// Dashboard Component
+const Dashboard = ({ user }) => {
+  if (!user) {
+    return <Navigate to="/" />;
+  }
+
+  return (
+    <div className="dashboard">
+      <h1>Dashboard</h1>
+      <div className="dashboard-welcome">
+        <h2>Welcome, {user.discord_username}!</h2>
+        {user.roblox_username ? (
+          <p>Your Roblox account <strong>{user.roblox_username}</strong> is connected.</p>
+        ) : (
+          <p>Please connect your Roblox account to access all features.</p>
+        )}
+      </div>
+      
+      <div className="dashboard-stats">
+        <h3>Your Statistics</h3>
+        <p>Statistics will be available once you play our games.</p>
+      </div>
+    </div>
+  );
+};
+
+// Profile Component
+const Profile = ({ user }) => {
+  if (!user) {
+    return <Navigate to="/" />;
+  }
+
+  return (
+    <div className="profile">
+      <h1>User Profile</h1>
+      
+      <div className="profile-card">
+        <div className="profile-header">
+          <h2>{user.discord_username}</h2>
+          {user.is_admin && <span className="admin-badge">Admin</span>}
+        </div>
+        
+        <div className="profile-details">
+          <div className="detail-row">
+            <span className="detail-label">Discord ID:</span>
+            <span className="detail-value">{user.discord_id}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Discord Username:</span>
+            <span className="detail-value">{user.discord_username}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Roblox Username:</span>
+            <span className="detail-value">
+              {user.roblox_username || 'Not connected'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NotFound Component
+const NotFound = () => (
+  <div className="not-found">
+    <h1>404 - Page Not Found</h1>
+    <p>The page you're looking for doesn't exist.</p>
+    <Link to="/">Return to Home</Link>
+  </div>
+);
+
+// Helper component for redirects
+function Navigate({ to }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate(to);
+  }, [navigate, to]);
+  return null;
+}
 
 function App() {
   const [user, setUser] = useState(null);
@@ -428,11 +561,11 @@ function App() {
             } />
             
             <Route path="/dashboard" element={
-              user ? <Dashboard user={user} /> : <Navigate to="/" />
+              <Dashboard user={user} />
             } />
             
             <Route path="/profile" element={
-              user ? <Profile user={user} /> : <Navigate to="/" />
+              <Profile user={user} />
             } />
             
             <Route path="*" element={<NotFound />} />
@@ -481,15 +614,6 @@ function App() {
       </div>
     </Router>
   );
-}
-
-// Helper component for redirects
-function Navigate({ to }) {
-  const navigate = useNavigate();
-  useEffect(() => {
-    navigate(to);
-  }, [navigate, to]);
-  return null;
 }
 
 export default App;
