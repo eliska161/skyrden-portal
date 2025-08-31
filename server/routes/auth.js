@@ -4,7 +4,8 @@ const router = express.Router();
 const User = require('../models/User');
 // Fix for node-fetch ESM issue - using axios instead
 const axios = require('axios');
-const { v4: uuidv4 } = require('uuid');
+// Remove uuid dependency
+// const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 
 // Environment configuration
@@ -12,6 +13,17 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const JWT_SECRET = process.env.JWT_SECRET || 'skyrden-jwt-secret-key';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 const ROBLOX_API_KEY = process.env.ROBLOX_API_KEY;
+
+// Helper function to generate a random string (replacing uuid)
+const generateRandomString = (length = 32) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const charactersLength = chars.length;
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+};
 
 // Debug middleware - log all requests
 router.use((req, res, next) => {
@@ -163,8 +175,8 @@ router.get('/roblox', (req, res) => {
   }
   
   if (isAuthenticated || isDevelopmentBypass || tokenValid) {
-    // Generate a state param to verify the callback
-    const state = uuidv4();
+    // Generate a state param to verify the callback - using our helper instead of uuid
+    const state = generateRandomString(32);
     req.session.robloxState = state;
     
     // Store user data if available

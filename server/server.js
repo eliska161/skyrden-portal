@@ -41,13 +41,12 @@ app.use(session({
       secret: process.env.SESSION_SECRET || 'fallback-secret'
     }
   }),
-  cookie: {
-    // MODIFIED SECTION - Always use these settings for cross-domain Netlify to Railway
-    secure: true, // ALWAYS true for cross-domain (https)
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'none' // ALWAYS 'none' for cross-domain
-  }
+   cookie: {
+     secure: true, 
+     httpOnly: true,
+     sameSite: 'none',
+     maxAge: 24 * 60 * 60 * 1000 // 24 hours
+   }
 }));
 
 
