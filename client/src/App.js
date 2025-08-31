@@ -11,6 +11,7 @@ import MyApplications from './pages/MyApplications';
 // Admin components
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ApplicationBuilder from './pages/admin/ApplicationBuilder';
+import ReviewSubmission from './pages/admin/ReviewSubmission';
 
 // Configuration
 const config = {
