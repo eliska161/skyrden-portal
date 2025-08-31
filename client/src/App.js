@@ -78,7 +78,7 @@ useEffect(() => {
                 // User is not authenticated - this is normal, not an error
                 console.log('User not authenticated');
                 setUser(null);
-                setLoading(false);
+                setLoading(false); // Make sure loading is set to false here
                 return;
             }
             
@@ -87,6 +87,11 @@ useEffect(() => {
                 setTimeout(() => checkAuthStatus(retries - 1), 1000);
                 return;
             }
+            
+            // If we're out of retries and response is still not OK
+            setUser(null);
+            setLoading(false); // Make sure loading is set to false here
+            return;
         }
         
         const data = await response.json();
@@ -100,17 +105,17 @@ useEffect(() => {
             setUser(null);
         }
         
+        // IMPORTANT: Always set loading to false after processing auth response
+        setLoading(false);
+        
     } catch (error) {
         console.error('Auth check failed:', error);
         if (retries > 0) {
             setTimeout(() => checkAuthStatus(retries - 1), 1000);
             return;
         } else {
+            // If we're out of retries, make sure to set loading to false
             setUser(null);
-        }
-    } finally {
-        // Only set loading to false if we're not going to retry
-        if (retries <= 1) {
             setLoading(false);
         }
     }
