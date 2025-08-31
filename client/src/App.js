@@ -5,8 +5,7 @@ import './App.css';
 
 // Import application components
 import ApplicationList from './pages/ApplicationList';
-import ApplicationForm from './pages/ApplicationForms';
-import ApplicationSubmitted from './pages/ApplicationSubmitted';            
+import ApplicationForm from './pages/ApplicationForms';         
 import MyApplications from './pages/MyApplications';
 
 // Admin components
