@@ -155,40 +155,70 @@ router.get('/discord', (req, res, next) => {
   })(req, res, next);
 });
 
-// Discord callback
+// Discord callback - improved database handling
 router.get('/discord/callback', (req, res, next) => {
-  const authTime = req.session && req.session.authStartTime ? 
-    `${Date.now() - req.session.authStartTime}ms` : 'unknown';
-    
-  debugLog('DISCORD-CALLBACK', 'Discord callback received', {
-    query: req.query,
-    authTime: authTime,
-    sessionID: req.sessionID,
-    sessionExists: !!req.session
-  });
+  debugLog('DISCORD-CALLBACK', 'Discord callback received');
   
-  passport.authenticate('discord', async (err, user, info) => {
+  passport.authenticate('discord', async (err, profile, info) => {
     if (err) {
       debugLog('DISCORD-ERROR', 'Discord auth error:', err);
       return res.redirect(`${CLIENT_URL}/?error=auth_failed&reason=${encodeURIComponent(err.message || 'Unknown error')}`);
     }
     
-    if (!user) {
-      debugLog('DISCORD-ERROR', 'No user returned from Discord auth');
+    if (!profile) {
+      debugLog('DISCORD-ERROR', 'No profile returned from Discord auth');
       return res.redirect(`${CLIENT_URL}/?error=no_user&info=${encodeURIComponent(JSON.stringify(info))}`);
     }
     
-    debugLog('DISCORD-SUCCESS', 'Discord auth successful for user:', {
-      discord_id: user.discord_id,
-      discord_username: user.discord_username
-    });
-    
     try {
+      debugLog('DISCORD-SUCCESS', 'Discord auth successful for profile:', {
+        id: profile.id,
+        username: profile.username
+      });
+      
+      // Find or create user in database
+      let user;
+      try {
+        user = await User.findOne({ discord_id: profile.id });
+        
+        if (!user) {
+          debugLog('USER-CREATE', 'Creating new user in database');
+          user = new User({
+            discord_id: profile.id,
+            discord_username: profile.username,
+            discord_avatar: profile.avatar,
+            discord_email: profile.email
+          });
+          await user.save();
+          debugLog('USER-CREATE-SUCCESS', 'New user created in database');
+        } else {
+          debugLog('USER-UPDATE', 'Updating existing user in database');
+          user.discord_username = profile.username;
+          user.discord_avatar = profile.avatar;
+          if (profile.email) user.discord_email = profile.email;
+          user.last_login = new Date();
+          await user.save();
+          debugLog('USER-UPDATE-SUCCESS', 'Existing user updated in database');
+        }
+      } catch (dbError) {
+        debugLog('DATABASE-ERROR', 'Error accessing database:', dbError);
+        
+        // Create an in-memory user object for session if database fails
+        user = {
+          discord_id: profile.id,
+          discord_username: profile.username,
+          is_admin: false,
+          roblox_username: null
+        };
+        
+        debugLog('FALLBACK', 'Using in-memory user object due to database error');
+      }
+      
       // Login using passport
-      req.login(user, async (err) => {
-        if (err) {
-          debugLog('SESSION-ERROR', 'Session login error:', err);
-          return res.redirect(`${CLIENT_URL}/?error=session_error&reason=${encodeURIComponent(err.message || 'Unknown error')}`);
+      req.login(user, async (loginErr) => {
+        if (loginErr) {
+          debugLog('SESSION-ERROR', 'Session login error:', loginErr);
+          return res.redirect(`${CLIENT_URL}/?error=session_error&reason=${encodeURIComponent(loginErr.message || 'Unknown error')}`);
         }
         
         debugLog('SESSION-LOGIN', 'Passport login successful');
@@ -205,31 +235,19 @@ router.get('/discord/callback', (req, res, next) => {
         const token = jwt.sign(
           { 
             id: user.discord_id, 
-            username: user.discord_username,
-            // Include additional data in token for debugging
-            session_id: req.sessionID || 'no-session-id',
-            timestamp: Date.now()
+            username: user.discord_username 
           },
           JWT_SECRET,
           { expiresIn: JWT_EXPIRY }
         );
         
-        debugLog('AUTH-TOKEN', 'Generated JWT token', { tokenLength: token.length });
-        
-        // Check all possible return URLs
+        // Redirect back to client with token
         const returnUrl = req.session && req.session.returnTo ? req.session.returnTo : CLIENT_URL;
         if (req.session) {
           delete req.session.returnTo;
-          delete req.session.authStartTime;
         }
         
-        debugLog('REDIRECT', 'Redirecting after auth', { 
-          returnUrl, 
-          includesToken: true,
-          includesDiscordId: true
-        });
-        
-        // Set explicit cookie options for cross-domain use
+        // Set the token as a cookie for cross-domain use
         res.cookie('skyrden_auth', token, { 
           httpOnly: true,
           secure: true,
@@ -237,19 +255,8 @@ router.get('/discord/callback', (req, res, next) => {
           maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
         
-        debugLog('COOKIES', 'Set auth cookie with options', {
-          name: 'skyrden_auth',
-          httpOnly: true,
-          secure: true,
-          sameSite: 'none',
-          expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        });
-        
-        // Log all response headers before redirecting
-        debugLog('RESPONSE-HEADERS', res._headers || 'No headers available');
-        
-        // Include token and user ID in the URL for cross-domain fallback
-        return res.redirect(`${returnUrl}/?auth=success&token=${token}&id=${user.discord_id}&username=${encodeURIComponent(user.discord_username)}&debug=true`);
+        // Include all needed info in redirect URL for client fallback
+        return res.redirect(`${returnUrl}/?auth=success&token=${token}&id=${user.discord_id}&username=${encodeURIComponent(user.discord_username)}`);
       });
     } catch (error) {
       debugLog('CRITICAL-ERROR', 'Error in Discord callback:', error);
