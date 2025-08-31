@@ -19,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/eliska161/skyrden-portal/issues"
   },
-  "homepage": "https://github.com/eliska161/skyrden-portal#readme"
+  "homepage": "https://github.com/eliska161/skyrden-portal#readme",
+  "dependencies": {
+    "react-beautiful-dnd": "^13.1.1"
+  }
 }
